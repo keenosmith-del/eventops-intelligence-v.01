@@ -65,3 +65,58 @@ Additional migrations will support:
 - Verification outcomes
 - Evidence references
   EOF
+
+## Migration 002 — Persistent RAG Conversations
+
+File: 002_rag_conversations.sql
+
+Creates two tables:
+
+- rag_conversations
+- rag_messages
+
+### Conversation Records
+
+Each conversation has:
+- UUID identifier
+- Optional title
+- Creation timestamp
+- Last-updated timestamp
+
+### Message Records
+
+Each message has:
+- Database-generated message identifier
+- Parent conversation UUID
+- Role: user or assistant
+- Kind: question, retrieval or answer
+- Message content
+- Optional query plan
+- JSONB evidence collection
+- Creation timestamp
+
+### Data Integrity
+
+The schema enforces:
+
+- Valid roles and message kinds
+- Non-empty message content
+- Correct JSONB evidence structure
+- Valid conversation relationships
+- Cascading deletion of messages
+
+Messages are ordered using their numeric IDs.
+
+The application repository will update conversation
+timestamps when messages are appended.
+
+### Current Status
+
+The database schema is implemented.
+
+Python conversation persistence, retrieval APIs,
+context assembly and restart-recovery tests are
+not yet implemented.
+
+The tables must not be exposed through public,
+unauthenticated conversation APIs.
