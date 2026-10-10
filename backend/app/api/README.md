@@ -73,3 +73,95 @@ Run the backend:
 python -m uvicorn app.main:app \
  --reload --reload-dir app \
  --host 127.0.0.1 --port 5050
+
+## Persistent RAG Conversations
+
+Module: conversations.py
+
+The Conversation API connects PostgreSQL conversation
+persistence to our existing semantic retrieval system.
+
+### Endpoints
+
+POST /api/conversations
+Creates a new conversation.
+
+GET /api/conversations
+Lists recent conversations.
+
+GET /api/conversations/{conversation_id}
+Retrieves a conversation and its stored messages.
+
+POST /api/conversations/{conversation_id}/messages
+Runs retrieval and persists the question and evidence.
+
+### Conversation Flow
+
+1. Validate the conversation identifier.
+2. Interpret the submitted question.
+3. Generate a local query embedding.
+4. Retrieve matching evidence through PostgreSQL.
+5. Persist the user question.
+6. Persist the retrieval message with evidence.
+7. Return the stored exchange.
+
+### Transaction Handling
+
+Question and retrieval messages are written inside
+the same PostgreSQL transaction.
+
+Failed database transactions roll back the exchange.
+
+### Evidence Preservation
+
+Stored retrieval messages contain:
+
+- Query plan
+- Document identifiers
+- Source record identifiers
+- Source references
+- Similarity scores
+- Retrieved content
+
+These are evidence snapshots, not generated answers.
+
+### Current Limitations
+
+- Follow-up questions are not yet context-aware.
+- Gemini generation is not yet integrated.
+- Conversation ownership is not yet enforced.
+- No demonstration session authentication yet.
+- No production rate limiting.
+- No streaming responses.
+
+These endpoints are for local development only.
+
+They must not be exposed publicly before implementing
+backend-validated sessions and conversation access
+controls.
+
+### Testing
+
+python -m pytest tests/test_conversation_api.py -v
+
+## Conversation Recovery Verification
+
+The Conversation API supports committed conversation
+persistence across application restarts.
+
+Recovery testing covers:
+
+- Creating a conversation over HTTP
+- Submitting a question through the RAG pipeline
+- Persisting user and retrieval messages
+- Preserving source evidence and query plans
+- Recreating the PostgreSQL container
+- Restarting FastAPI
+- Retrieving the original conversation by UUID
+
+This verifies local persistence using PostgreSQL's
+named Docker volume.
+
+Conversation access controls and demonstration
+session authentication are still required before
+public deployment.
