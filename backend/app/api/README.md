@@ -165,3 +165,57 @@ named Docker volume.
 Conversation access controls and demonstration
 session authentication are still required before
 public deployment.
+
+## Context-Aware Conversation Retrieval
+
+The conversation message endpoint supports deterministic
+context resolution using previously persisted messages.
+
+### Processing Flow
+
+1. Validate the conversation identifier.
+2. Load ordered conversation history from PostgreSQL.
+3. Resolve clear contextual event references.
+4. Interpret the resolved question.
+5. Execute PostgreSQL-backed semantic retrieval.
+6. Persist the original question and retrieval result.
+7. Preserve the context-resolution decision.
+
+### Context Metadata
+
+Retrieval message query plans contain:
+
+context_resolution:
+  used_context
+  inherited_event_id
+
+The query plan also retains the resolved retrieval query.
+
+The original user question is stored separately and
+is not replaced by the enriched retrieval query.
+
+### Error Handling
+
+If a question requires unavailable or ambiguous
+context, the endpoint returns HTTP 422.
+
+Such failures do not persist partial exchanges.
+
+Explicitly provided event IDs take precedence over
+previous conversation context.
+
+### Limitations
+
+Context resolution currently supports selected
+event references only.
+
+It does not provide general conversational reasoning
+or multi-entity coreference.
+
+Context is read before the retrieval operation.
+Concurrent requests to the same conversation are
+not yet serialized across context resolution and
+retrieval; this requires further coordination.
+
+Conversation access controls are still required
+before public deployment.

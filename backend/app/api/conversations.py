@@ -13,6 +13,7 @@ from app.api.rag import (
 from app.core.database import connect_db
 from app.models.conversation import Conversation, ConversationMessage
 from app.models.domain import DomainModel
+from app.rag.context import resolve_conversation_question
 from app.rag.postgres_retrieval import PostgresSemanticRetriever
 from app.rag.query import interpret_query
 from app.services.conversation_repository import ConversationRepository
@@ -117,8 +118,20 @@ def submit_question(
             detail="Conversation not found",
         )
 
+    # Retrieve the persisted history for this conversation.
+    history = repository.list_messages(conversation_id)
+
     try:
-        plan = interpret_query(payload.question)
+        # Resolve references such as "its" and "that event".
+        resolved = resolve_conversation_question(
+            question=payload.question,
+            messages=history,
+        )
+
+        # Interpret the resolved question using our
+        # existing deterministic query planner.
+        plan = interpret_query(resolved.retrieval_question)
+
     except ValueError as exc:
         raise HTTPException(
             status_code=422,
@@ -148,11 +161,20 @@ def submit_question(
         for hit in hits
     ]
 
+    # Preserve both the interpreted query plan and
+    # the context-resolution decision.
+    query_plan = asdict(plan)
+
+    query_plan["context_resolution"] = {
+        "used_context": resolved.used_context,
+        "inherited_event_id": resolved.inherited_event_id,
+    }
+
     try:
         messages = repository.append_retrieval_exchange(
             conversation_id=conversation_id,
-            question=plan.query,
-            query_plan=asdict(plan),
+            question=resolved.original_question,
+            query_plan=query_plan,
             evidence=evidence,
         )
     except LookupError as exc:

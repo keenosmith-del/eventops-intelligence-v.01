@@ -374,3 +374,26 @@ python -m pytest tests/test_rag_context.py -v
 
 The module will be integrated into the Conversation
 API after its standalone tests have passed.
+
+## Conversation API Integration
+
+The deterministic context resolver is integrated
+into POST /api/conversations/{id}/messages.
+
+The resolver receives ordered messages loaded from
+the PostgreSQL conversation repository.
+
+The original question is preserved in the user message.
+
+The enriched query and inherited event identifier are
+stored with the assistant retrieval message.
+
+Integration tests verify:
+- Successful event inheritance
+- Rejection of missing context
+- Rejection of ambiguous context
+- Explicit event identifiers taking precedence
+- Persistent conversation history
+
+Context resolution runs before local query embedding
+and pgvector similarity search.

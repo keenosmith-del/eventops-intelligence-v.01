@@ -106,6 +106,7 @@ def evaluate_case(
 def main() -> None:
     from app.rag.embeddings import LocalEmbeddingModel
     from app.rag.ingestion import ingest_structured_documents
+    from app.rag.retrieval import SemanticRetriever
 
     print("Loading structured knowledge...")
     records = ingest_structured_documents()
@@ -120,7 +121,7 @@ def main() -> None:
 
     outcomes = [evaluate_case(case, retriever) for case in cases]
 
-    print("\nRAG RETRIEVAL EVALUATION")
+    print("\nRAG RETRIEVAL EVALUATION — IN-MEMORY")
     print("=" * 60)
 
     for outcome in outcomes:
@@ -156,7 +157,7 @@ def main() -> None:
 
     print("\n" + "=" * 60)
     print(f"Cases: {len(outcomes)}")
-    print(f"Passing cases: {sum(o.passed for o in outcomes)}")
+    print(f"Passing cases: " f"{sum(outcome.passed for outcome in outcomes)}")
     print(f"Pass rate: {pass_rate:.2%}")
     print(f"Mean Recall@K: {mean_recall:.2%}")
     print(f"Mean Reciprocal Rank: {mrr:.4f}")

@@ -278,3 +278,143 @@ def test_invalid_conversation_uuid_returns_422(
     response = client.get("/api/conversations/not-a-uuid")
 
     assert response.status_code == 422
+
+
+def test_follow_up_uses_persisted_event_context(api_client):
+    client, _, retriever = api_client
+
+    conversation_id = create_conversation(client)
+
+    first = client.post(
+        f"/api/conversations/{conversation_id}/messages",
+        json={"question": ("What is the check-in policy for EVT-101?")},
+    )
+
+    assert first.status_code == 200
+
+    second = client.post(
+        f"/api/conversations/{conversation_id}/messages",
+        json={"question": ("What time does its check-in close?")},
+    )
+
+    assert second.status_code == 200
+
+    body = second.json()
+    user_message, retrieval_message = body["messages"]
+
+    # The actual user wording must be preserved.
+    assert user_message["content"] == ("What time does its check-in close?")
+
+    # The retrieval query must inherit EVT-101.
+    last_call = retriever.calls[-1]
+
+    assert last_call["event_id"] == "EVT-101"
+    assert last_call["record_type"] == "policy"
+    assert last_call["policy_category"] == "check_in"
+
+    assert "EVT-101" in last_call["query"]
+
+    # The resolution decision must be auditable.
+    plan = retrieval_message["query_plan"]
+
+    assert plan["context_resolution"] == {
+        "used_context": True,
+        "inherited_event_id": "EVT-101",
+    }
+
+    # Both exchanges must be stored in order.
+    history_response = client.get(f"/api/conversations/{conversation_id}")
+
+    assert history_response.status_code == 200
+
+    history = history_response.json()["messages"]
+
+    assert len(history) == 4
+    assert history[2]["content"] == ("What time does its check-in close?")
+    assert history[3]["evidence"][0]["record_id"] == ("POL-003")
+
+
+def test_follow_up_without_context_returns_422(api_client):
+    client, _, retriever = api_client
+
+    conversation_id = create_conversation(client)
+
+    response = client.post(
+        f"/api/conversations/{conversation_id}/messages",
+        json={"question": ("What time does its check-in close?")},
+    )
+
+    assert response.status_code == 422
+
+    assert "previous retrieval context" in (response.json()["detail"])
+
+    assert retriever.calls == []
+
+    history = client.get(f"/api/conversations/{conversation_id}").json()["messages"]
+
+    assert history == []
+
+
+def test_ambiguous_history_does_not_invent_event(
+    api_client,
+):
+    client, _, retriever = api_client
+
+    conversation_id = create_conversation(client)
+
+    first = client.post(
+        f"/api/conversations/{conversation_id}/messages",
+        json={"question": ("What are the general identity requirements?")},
+    )
+
+    assert first.status_code == 200
+
+    calls_before = len(retriever.calls)
+
+    second = client.post(
+        f"/api/conversations/{conversation_id}/messages",
+        json={"question": ("What is its check-in policy?")},
+    )
+
+    assert second.status_code == 422
+
+    assert "ambiguous" in second.json()["detail"]
+
+    # The failed question must not invoke retrieval.
+    assert len(retriever.calls) == calls_before
+
+    history = client.get(f"/api/conversations/{conversation_id}").json()["messages"]
+
+    # Only the first, successful exchange is stored.
+    assert len(history) == 2
+
+
+def test_explicit_event_overrides_prior_context(
+    api_client,
+):
+    client, _, retriever = api_client
+
+    conversation_id = create_conversation(client)
+
+    first = client.post(
+        f"/api/conversations/{conversation_id}/messages",
+        json={"question": ("What is the check-in policy for EVT-101?")},
+    )
+
+    assert first.status_code == 200
+
+    second = client.post(
+        f"/api/conversations/{conversation_id}/messages",
+        json={"question": ("What is the check-in policy for EVT-102?")},
+    )
+
+    assert second.status_code == 200
+
+    assert retriever.calls[-1]["event_id"] == ("EVT-102")
+
+    plan = second.json()["messages"][1]["query_plan"]
+
+    assert plan["context_resolution"] == {
+        "used_context": False,
+        "inherited_event_id": None,
+    }
