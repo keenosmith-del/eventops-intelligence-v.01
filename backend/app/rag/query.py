@@ -80,10 +80,21 @@ def interpret_query(question: str) -> QueryPlan:
         mentions_inactive = bool(re.search(r"\binactive\b", text))
         mentions_active = bool(re.search(r"\bactive\b", text))
 
-        if mentions_inactive and not mentions_active:
-            participant_status = "inactive"
-        elif mentions_active and not mentions_inactive:
-            participant_status = "active"
+        # Questions asking whether a status is true must
+        # retrieve the underlying record before checking it.
+        # Do not remove contradictory evidence.
+        asks_about_status = bool(
+            re.match(
+                r"^(?:is|was)\s+(?!there\b).*\b" r"(?:active|inactive)\b",
+                text,
+            )
+        )
+
+        if not asks_about_status:
+            if mentions_inactive and not mentions_active:
+                participant_status = "inactive"
+            elif mentions_active and not mentions_inactive:
+                participant_status = "active"
 
     policy_category = None
 

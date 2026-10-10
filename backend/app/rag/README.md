@@ -158,6 +158,7 @@ The query interpreter converts supported natural-language
 questions into an explicit QueryPlan.
 
 Supported capabilities:
+
 - Extract event identifiers
 - Normalize event identifiers
 - Identify event, policy and participant questions
@@ -193,3 +194,46 @@ and response abstention will be addressed separately.
 ## Query Tests
 
 python -m pytest tests/test_rag_query.py -v
+
+## Retrieval Evaluation
+
+Module: evaluation.py
+
+Evaluation dataset:
+data/evaluation/rag_questions.json
+
+The evaluation measures:
+
+- Case pass rate
+- Recall@K
+- Mean Reciprocal Rank
+- Negative-case accuracy
+
+Run:
+
+python -m app.rag.evaluation
+
+Automated evaluator tests:
+
+python -m pytest tests/test_rag_evaluation.py -v
+
+Evaluation currently measures retrieval quality only.
+Generated answer grounding will be tested separately.
+
+## Status-Verification Query Handling
+
+Queries requesting participants with a particular
+status use deterministic metadata filtering.
+
+Questions asking whether a participant has a status
+do not pre-filter records by the proposed status.
+
+This allows retrieval of evidence that contradicts
+a question's premise.
+
+The behaviour is covered by query and retrieval
+evaluation regression tests.
+
+The current implementation does not yet guarantee
+that named-person questions retrieve only the named
+participant.

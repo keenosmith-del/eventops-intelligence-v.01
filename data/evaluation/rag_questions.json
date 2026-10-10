@@ -1,0 +1,67 @@
+[
+  {
+    "case_id": "EVAL-001",
+    "question": "Where is the AI Engineering Summit being held?",
+    "expected_record_ids": ["EVT-101"]
+  },
+  {
+    "case_id": "EVAL-002",
+    "question": "Where is EVT-103 being held?",
+    "expected_record_ids": ["EVT-103"]
+  },
+  {
+    "case_id": "EVAL-003",
+    "question": "How many people can attend EVT-102?",
+    "expected_record_ids": ["EVT-102"]
+  },
+  {
+    "case_id": "EVAL-004",
+    "question": "What time does check-in close for EVT-101?",
+    "expected_record_ids": ["POL-003"]
+  },
+  {
+    "case_id": "EVAL-005",
+    "question": "What is the check-in deadline for EVT-102?",
+    "expected_record_ids": ["POL-005"]
+  },
+  {
+    "case_id": "EVAL-006",
+    "question": "What is the cancellation policy for EVT-103?",
+    "expected_record_ids": ["POL-002"]
+  },
+  {
+    "case_id": "EVAL-007",
+    "question": "Which participants are inactive for EVT-101?",
+    "expected_record_ids": ["P-003"]
+  },
+  {
+    "case_id": "EVAL-008",
+    "question": "Which attendees are active for EVT-102?",
+    "expected_record_ids": ["P-004", "P-005"]
+  },
+  {
+    "case_id": "EVAL-009",
+    "question": "Which participants are registered for EVT-103?",
+    "expected_record_ids": ["P-005", "P-006", "P-007"]
+  },
+  {
+    "case_id": "EVAL-010",
+    "question": "Does an invitation guarantee admission eligibility for EVT-101?",
+    "expected_record_ids": ["POL-004", "POL-009"]
+  },
+  {
+    "case_id": "EVAL-011",
+    "question": "Where is EVT-999 being held?",
+    "expected_record_ids": []
+  },
+  {
+    "case_id": "EVAL-012",
+    "question": "Which participants are inactive for EVT-102?",
+    "expected_record_ids": []
+  },
+  {
+    "case_id": "EVAL-013",
+    "question": "Is Lindi Mokoena active for EVT-101?",
+    "expected_record_ids": ["P-003"]
+  }
+]

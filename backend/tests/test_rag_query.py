@@ -174,3 +174,19 @@ def test_invalid_policy_category_is_rejected(retriever):
             "Find policies",
             policy_category="unknown",
         )
+
+
+## Additional tests for query interpretation
+def test_status_verification_does_not_filter_evidence():
+    plan = interpret_query("Is Lindi Mokoena active for EVT-101?")
+
+    assert plan.record_type == "participant"
+    assert plan.event_id == "EVT-101"
+    assert plan.participant_status is None
+
+
+def test_status_listing_still_filters_participants():
+    plan = interpret_query("Which participants are inactive for EVT-101?")
+
+    assert plan.record_type == "participant"
+    assert plan.participant_status == "inactive"
