@@ -96,3 +96,13 @@ FastAPI BackgroundTasks is not a resumable queue. Interrupted executions are mar
 - Backend additions: `agents/workflow.py`, `integrations/tools.py`, `verification/pipeline.py`, `services/agent_repository.py`, agent/knowledge APIs, `core/demo.py`, `core/migrate.py`, module READMEs, three new test modules and dependency lock.
 - Backend adaptations: router/CORS/public guard wiring in main.py; optional session scope in conversation repository/dependency; SSL env support in database.py; configurable embedding cache/thread count. Original request/response models and RAG/generation/evaluation logic remain intact.
 - Infrastructure/docs: additive migration 003, render.yaml, scripts/start-backend.sh, root/frontend/backend/deployment READMEs, env examples, gitignore and actual submission PNG/CSV artifacts. Existing migrations 001/002 and Milestone 07C.1 evaluator/tests are unchanged. v.02 was not accessed or modified.
+
+## Mailtrap activation follow-up — 2026-10-10
+
+This supersedes the historical “Email not connected” status above. The existing adapter was inspected and executed against the configured root `.env`: account 2853336, sandbox 4953522, **real HTTPS HTTP 200, zero messages**. The token was not printed. FastAPI loads root environment configuration at startup; restart existing processes after changing credentials. The adapter correctly distinguishes a successful empty list from configuration, HTTP, timeout and malformed-response failures.
+
+- Prepared controlled synthetic EVT-101 email and official Mailtrap Sandbox insertion instructions: [MAILTRAP_INTEGRATION.md](MAILTRAP_INTEGRATION.md). No message was sent by Codex.
+- Added one opt-in live integration test, bounded to one message/two GETs, using the existing pipeline and actual PostgreSQL references/results. Calendar/Web and export are deliberately skipped in this email-only probe. No Gemini or frontend changes.
+- Executed live probe: **1 skipped in 0.47s**, explicitly because the connected inbox is empty; no execution created. Message extraction/normalization/verification/persistence is **pending insertion**, not claimed as live verified.
+- Regression suite with local PostgreSQL access: **191 passed, 1 skipped in 1.48s**. New unit coverage checks empty inbox, 401/403/503, timeout, invalid payload and controlled-message discrepancies. Selected Ruff F/E9/I checks and `git diff --check` passed. The first sandboxed regression attempt could not access local PostgreSQL; rerun with permitted local access passed.
+- No commit/push, new provider, frontend rebuild, reference-data change or automatic email sending.

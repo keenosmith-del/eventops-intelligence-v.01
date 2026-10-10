@@ -42,7 +42,7 @@ RAG messages preserve `question`, `top_k`, `generate_answer`; response statuses 
 
 ## Agent scope
 
-Real read-only Calendar (iCalendar), Web JSON/HTML and Mailtrap Email Testing adapters. The graph independently records extraction, normalization, deduplication, reference comparisons, discrepancy summary and persistence. Email is not connected until sandbox credentials are supplied. No email send API, SMTP or live-LLM agent planner is present. Missing source IDs are not guessed from a run's target event.
+Real read-only Calendar (iCalendar), Web JSON/HTML and Mailtrap Email Testing adapters. The graph independently records extraction, normalization, deduplication, reference comparisons, discrepancy summary and persistence. Mailtrap's configured sandbox returned HTTP 200 with zero messages on 2026-10-10; empty reads complete with zero messages, while connection failures fail the step. [Controlled email and opt-in live test](../docs/testing/MAILTRAP_INTEGRATION.md) cover insertion and subsequent record processing/persistence. No email send API, SMTP or live-LLM agent planner is present in the application. Missing source IDs are not guessed from a run's target event.
 
 Results reference current indexed event/directory records; synthetic public holiday observations do not meet EVT authority criteria and remain flagged. Tests use explicit fixtures for positive verification, not runtime fallback data. [Agent details](app/agents/README.md), [integration details](app/integrations/README.md), [verification details](app/verification/README.md).
 

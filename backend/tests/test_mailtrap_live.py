@@ -5,11 +5,10 @@ from pathlib import Path
 
 import httpx
 import pytest
-from dotenv import load_dotenv
-
 from app.agents.workflow import execute
 from app.integrations.tools import NotConnected, ToolError, read_email
 from app.services import agent_repository as store
+from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[2]
 SUBJECT = "EventOps controlled verification | EVT-101 | MAILTRAP-EVT101-001"
@@ -51,9 +50,18 @@ class BoundedMailtrapTransport(httpx.BaseTransport):
 
 def test_live_controlled_mailtrap_registration_persists(monkeypatch):
     if os.getenv("RUN_MAILTRAP_LIVE") != "true":
-        pytest.skip("Opt in with RUN_MAILTRAP_LIVE=true; requires real Mailtrap and DB.")
+        pytest.skip(
+            "Opt in with RUN_MAILTRAP_LIVE=true; requires real Mailtrap and DB."
+        )
     load_dotenv(ROOT / ".env", override=False)
     monkeypatch.setenv("GEMINI_ENABLED", "false")
+    if (os.getenv("MAILTRAP_ACCOUNT_ID"), os.getenv("MAILTRAP_INBOX_ID")) != (
+        "2853336",
+        "4953522",
+    ):
+        pytest.fail(
+            "Configured IDs do not match the controlled sandbox.", pytrace=False
+        )
     transport = BoundedMailtrapTransport(
         os.getenv("MAILTRAP_ACCOUNT_ID"), os.getenv("MAILTRAP_INBOX_ID")
     )
@@ -62,10 +70,15 @@ def test_live_controlled_mailtrap_registration_persists(monkeypatch):
     except ToolError as exc:
         pytest.fail(str(exc), pytrace=False)
     if not payload["messages"]:
-        pytest.skip("Mailtrap connected; inbox empty. Insert the controlled test email.")
+        pytest.skip(
+            "Mailtrap connected; inbox empty. Insert the controlled test email."
+        )
     message = payload["messages"][0]
     if message["subject"] != SUBJECT:
-        pytest.fail("Newest message is not the controlled email; no run was created.", pytrace=False)
+        pytest.fail(
+            "Newest message is not the controlled email; no run was created.",
+            pytrace=False,
+        )
 
     def not_requested(limit):
         raise NotConnected("Intentionally not requested in this email-only live probe.")
@@ -78,13 +91,23 @@ def test_live_controlled_mailtrap_registration_persists(monkeypatch):
         run_id,
         "EVT-101",
         1,
-        adapters={"calendar": not_requested, "email": lambda limit: payload, "web": not_requested},
+        adapters={
+            "calendar": not_requested,
+            "email": lambda limit: payload,
+            "web": not_requested,
+        },
     )
-    store.step(run_id, "export", "skipped", error="CSV export not requested by this probe.")
+    store.step(
+        run_id, "export", "skipped", error="CSV export not requested by this probe."
+    )
     persisted = store.get_run(run_id)
     assert persisted is not None
     assert persisted["status"] == "partial"  # Calendar/Web were deliberately skipped.
-    assert persisted["summary"]["tools"] == {"calendar": "skipped", "email": "completed", "web": "skipped"}
+    assert persisted["summary"]["tools"] == {
+        "calendar": "skipped",
+        "email": "completed",
+        "web": "skipped",
+    }
     assert len(persisted["results"]) == 1
     result = persisted["results"][0]
     assert result["event_id"] == "EVT-101"
@@ -98,7 +121,15 @@ def test_live_controlled_mailtrap_registration_persists(monkeypatch):
     assert "MAILTRAP-EVT101-001" in result["evidence"][0]["excerpt"]
     steps = {step["node_id"]: step for step in persisted["steps"]}
     assert steps["email"]["outputs"]["messages_read"] == 1
-    for node in ["email", "extraction", "normalization", "deduplication", "verification", "discrepancy", "persistence"]:
+    for node in [
+        "email",
+        "extraction",
+        "normalization",
+        "deduplication",
+        "verification",
+        "discrepancy",
+        "persistence",
+    ]:
         assert steps[node]["status"] == "completed"
     assert store.get_run(run_id)["results"] == persisted["results"]
     assert transport.calls == 2

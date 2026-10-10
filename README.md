@@ -12,13 +12,13 @@ Inference Group AI Engineering assessment: an integrated React workspace for str
 | Polished web interface | `/signin`, five navigation views, Evidence/Context panel, React Flow graph, responsive layouts, real API integration |
 | Calendar tool | Real public HTTPS iCalendar feed read, executed locally |
 | Web tool | Real HTTPS reference API read, executed locally |
-| Email tool | Mailtrap Email Testing message/body reader implemented and contract-tested with mocked transport; **not connected** because credentials are absent |
+| Email tool | Real Mailtrap HTTPS read confirmed HTTP 200 with an empty inbox; controlled-message ingestion/persistence awaits insertion; [bounded live test and instructions](docs/testing/MAILTRAP_INTEGRATION.md) |
 | Extraction, normalization, deduplication and verification | Deterministic LangGraph stages, reference comparisons, conflict/missing-field flags and provenance |
 | Results, execution history and export | PostgreSQL runs/steps/results; selectable node/record detail; actual CSV download and history restoration verified |
 | Public assessment controls | Anonymous demo-token isolation, explicit CORS, persistent quotas, input/source bounds, read-only tools |
 | Public URL | **Not deployed**. Owner must configure accounts/credentials and deploy |
 
-Part 2 currently has **two live tool categories, not three**. There is no fabricated Email success. Default public holiday observations do not match the fictional EVT dataset; all 16 observed records in the live run were correctly flagged, with 11 duplicates merged. Positive verified/inactive/conflicting cases are covered by explicit synthetic test inputs, not substituted into live runs.
+Calendar and Web have live record-processing evidence. Mailtrap now has a successful real HTTPS connection read, but its inbox is empty; three-source record-processing completion remains unverified. Default public holiday observations do not match the fictional EVT dataset; all 16 observed records in the earlier live run were correctly flagged, with 11 duplicates merged. Positive verified/inactive/conflicting cases are covered by explicit synthetic test inputs, not substituted into live runs.
 
 ## Quick local setup
 
@@ -108,7 +108,7 @@ Detailed evidence and blockers: [Submission readiness](docs/testing/SUBMISSION_R
 
 Follow [the exact deployment actions](docs/deployment/README.md). `render.yaml` prepares a Free Python service and static site without provisioning paid infrastructure; supply a persistent pgvector PostgreSQL URL with TLS. `scripts/start-backend.sh` applies migrations/indexes sources, then binds to `0.0.0.0:$PORT`. Cloud runtime does not depend on Docker.
 
-The owner must deploy the public URL, configure the exact frontend/backend URLs and CORS, and activate/verify Mailtrap to complete the third live tool. Gemini should remain disabled for automated checks; manually enable it only after confirming provider account/billing constraints. Free-host memory/cold starts, hosted TLS connectivity and persistence after actual redeploy are not yet verified.
+The owner must deploy the public URL, configure the exact frontend/backend URLs and CORS, and insert the [controlled Mailtrap email](docs/testing/MAILTRAP_INTEGRATION.md) to verify live email record processing. Gemini should remain disabled for automated checks; manually enable it only after confirming provider account/billing constraints. Free-host memory/cold starts, hosted TLS connectivity and persistence after actual redeploy are not yet verified.
 
 BackgroundTasks is not a durable queue: interrupted runs are marked failed on later read after ten minutes and do not resume. Demo tokens isolate synthetic assessment objects but are not production identity. Global daily budgets can be exhausted by anonymous traffic. Extraction supports specified ICS/JSON/plain-text patterns, not arbitrary attachments, OCR or general semantic reasoning. Further commercial authentication, retention, audit/claim evaluation and durable worker orchestration are outside this v.01 assessment increment.
 

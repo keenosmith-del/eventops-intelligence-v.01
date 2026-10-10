@@ -1,4 +1,6 @@
+import json
 from copy import deepcopy
+from pathlib import Path
 
 from app.rag.ingestion import ingest_structured_documents
 from app.verification.pipeline import deduplicate, extract, normalize, summary, verify
@@ -127,3 +129,33 @@ def test_multiple_ids_and_addresses_are_ambiguous():
     row = extract(sources, 5)[0]
     assert not row["event_id"] and not row["email"]
     assert set(row["issues"]) == {"ambiguous_event_ids", "ambiguous_email_addresses"}
+
+
+def test_controlled_mailtrap_email_expected_discrepancies_offline():
+    root = Path(__file__).resolve().parents[2]
+    sample = root / "docs/testing/mailtrap/evt101-registration"
+    email = json.loads(sample.with_suffix(".json").read_text())
+    assert email["text"] == sample.with_suffix(".txt").read_text()
+    # Explicit synthetic unit input, never injected into a live run.
+    sources = {
+        "email": {
+            "source_reference": "https://mailtrap.io/test-only",
+            "messages": [
+                {
+                    "id": "1",
+                    "subject": email["subject"],
+                    "body": email["text"],
+                    "source_reference": "https://mailtrap.io/test-only/1/body.txt",
+                }
+            ],
+        }
+    }
+    row = verify(deduplicate(normalize(extract(sources, 1))), references(), "EVT-101")[
+        0
+    ]
+    assert row["full_name"] == "Lindi Mokoena-Test"
+    assert row["email"] == "lindi.mokoena@example.com"
+    assert row["event_id"] == "EVT-101"
+    assert row["status"] == "review_required"
+    assert set(row["issues"]) == {"name_mismatch", "inactive_participant"}
+    assert {match["record_id"] for match in row["matches"]} == {"EVT-101", "P-003"}
