@@ -1,5 +1,6 @@
-
 from fastapi import FastAPI
+
+from app.api.rag import router as rag_router
 
 app = FastAPI(
     title="EventOps Intelligence API",
@@ -7,10 +8,9 @@ app = FastAPI(
     version="0.1.0",
 )
 
+app.include_router(rag_router)
+
 
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "ok",
-        "service": "eventops-intelligence-api"
-    }
+    return {"status": "ok", "service": "eventops-intelligence-api"}
