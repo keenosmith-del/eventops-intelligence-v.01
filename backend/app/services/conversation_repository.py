@@ -245,3 +245,145 @@ class ConversationRepository:
             )
 
         return messages
+
+    def append_generated_answer(
+        self,
+        conversation_id: UUID,
+        answer: str,
+        citations: list[dict[str, str]],
+        model: str,
+    ) -> ConversationMessage:
+        """Persist an answer tied to the latest retrieval."""
+
+        if not isinstance(answer, str) or not answer.strip() or len(answer) > 1200:
+            raise ValueError("Answer must contain 1 to 1200 characters")
+
+        if not isinstance(model, str) or not model.strip() or len(model) > 100:
+            raise ValueError("Invalid generation model")
+
+        if not isinstance(citations, list) or not 1 <= len(citations) <= 5:
+            raise ValueError("Generated answers require 1 to 5 citations")
+
+        citation_pairs = []
+
+        for citation in citations:
+            if not isinstance(citation, dict):
+                raise ValueError("Invalid citation")
+
+            record_id = citation.get("record_id")
+            source = citation.get("source_reference")
+
+            if not (
+                isinstance(record_id, str)
+                and record_id.strip()
+                and isinstance(source, str)
+                and source.strip()
+            ):
+                raise ValueError(
+                    "Citation requires a record ID " "and source reference"
+                )
+
+            citation_pairs.append((record_id, source))
+
+        if len(set(citation_pairs)) != len(citation_pairs):
+            raise ValueError("Duplicate citations")
+
+        with self.connection.cursor(row_factory=dict_row) as cursor:
+            cursor.execute(
+                """
+                SELECT id
+                FROM rag_conversations
+                WHERE id = %s
+                FOR UPDATE
+                """,
+                (conversation_id,),
+            )
+
+            if cursor.fetchone() is None:
+                raise LookupError(f"Conversation not found: {conversation_id}")
+
+            cursor.execute(
+                """
+                SELECT kind, evidence
+                FROM rag_messages
+                WHERE conversation_id = %s
+                  AND role = 'assistant'
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (conversation_id,),
+            )
+
+            latest = cursor.fetchone()
+
+            if latest is None or latest["kind"] != "retrieval":
+                raise ValueError(
+                    "A generated answer requires a preceding " "retrieval message"
+                )
+
+            allowed = {
+                (
+                    item["record_id"],
+                    item["source_reference"],
+                )
+                for item in latest["evidence"]
+            }
+
+            if not set(citation_pairs).issubset(allowed):
+                raise ValueError("Generated answer contains unsupported citations")
+
+            cursor.execute(
+                f"""
+                INSERT INTO rag_messages (
+                    conversation_id,
+                    role,
+                    kind,
+                    content,
+                    query_plan,
+                    evidence
+                )
+                VALUES (
+                    %s,
+                    'assistant',
+                    'answer',
+                    %s,
+                    %s,
+                    %s
+                )
+                RETURNING {MESSAGE_COLUMNS}
+                """,
+                (
+                    conversation_id,
+                    answer.strip(),
+                    Jsonb(
+                        {
+                            "generation": {
+                                "model": model,
+                                "citation_ids_checked": True,
+                            }
+                        }
+                    ),
+                    Jsonb(
+                        [
+                            {
+                                "record_id": record_id,
+                                "source_reference": source,
+                            }
+                            for record_id, source in citation_pairs
+                        ]
+                    ),
+                ),
+            )
+
+            message = ConversationMessage.model_validate(cursor.fetchone())
+
+            cursor.execute(
+                """
+                UPDATE rag_conversations
+                SET updated_at = NOW()
+                WHERE id = %s
+                """,
+                (conversation_id,),
+            )
+
+        return message

@@ -191,3 +191,44 @@ python -m pytest tests/test_conversation_repository.py -v
 
 Integration tests roll back temporary database
 changes after execution.
+
+## Generated Answer Persistence
+
+ConversationRepository.append_generated_answer() supports
+persisting source-cited AI-generated answers.
+
+A generated answer must follow a retrieval message
+within the same conversation.
+
+The repository verifies citation record identifiers
+and source references against that preceding
+retrieval message.
+
+Stored answer messages contain:
+
+- Original generated answer text
+- Assistant role
+- Answer message kind
+- Generation model identifier
+- Citation validation metadata
+- Source record identifiers and references
+- Database-generated message timestamp
+
+The repository rejects:
+
+- Empty answers
+- Missing or duplicate citations
+- Unsupported citation references
+- Answers without preceding retrieval evidence
+- Duplicate answer messages following a retrieval
+
+Generated answer persistence participates in the
+caller's transaction.
+
+When integrated into the API, the retrieval exchange
+and generated answer must be committed together.
+
+No model calls are performed in this repository.
+
+Citation validation is structural; claim-level factual
+verification remains a separate requirement.
