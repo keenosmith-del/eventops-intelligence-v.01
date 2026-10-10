@@ -1,0 +1,111 @@
+[
+  {
+    "case_id": "GEN-001",
+    "scenario": "Direct factual answer",
+    "question": "What time does check-in close for EVT-101?",
+    "evidence": [
+      {
+        "record_id": "POL-003",
+        "source_reference": "data/structured/policies.csv#policy_id=POL-003",
+        "content": "Check-in for EVT-101 closes at 08:45 South Africa Standard Time."
+      }
+    ],
+    "expected_status": "generated",
+    "required_facts": ["08:45"],
+    "expected_citation_ids": ["POL-003"]
+  },
+  {
+    "case_id": "GEN-002",
+    "scenario": "Event venue",
+    "question": "Where is EVT-101 being held?",
+    "evidence": [
+      {
+        "record_id": "EVT-101",
+        "source_reference": "data/structured/events.csv#event_id=EVT-101",
+        "content": "Event EVT-101: AI Engineering Summit. Venue: Cape Town Convention Centre."
+      }
+    ],
+    "expected_status": "generated",
+    "required_facts": ["Cape Town Convention Centre"],
+    "expected_citation_ids": ["EVT-101"]
+  },
+  {
+    "case_id": "GEN-003",
+    "scenario": "Answer requiring multiple sources",
+    "question": "When does check-in close and does an invitation guarantee admission to EVT-101?",
+    "evidence": [
+      {
+        "record_id": "POL-003",
+        "source_reference": "data/structured/policies.csv#policy_id=POL-003",
+        "content": "Check-in for EVT-101 closes at 08:45."
+      },
+      {
+        "record_id": "POL-009",
+        "source_reference": "data/structured/policies.csv#policy_id=POL-009",
+        "content": "An invitation does not constitute verified admission."
+      }
+    ],
+    "expected_status": "generated",
+    "required_facts": ["08:45", "verified admission"],
+    "expected_citation_ids": ["POL-003", "POL-009"]
+  },
+  {
+    "case_id": "GEN-004",
+    "scenario": "No retrieved evidence",
+    "question": "What is the parking fee for EVT-101?",
+    "evidence": [],
+    "expected_status": "insufficient_evidence",
+    "required_facts": [],
+    "expected_citation_ids": []
+  },
+  {
+    "case_id": "GEN-005",
+    "scenario": "Irrelevant evidence",
+    "question": "What is the parking fee for EVT-101?",
+    "evidence": [
+      {
+        "record_id": "EVT-101",
+        "source_reference": "data/structured/events.csv#event_id=EVT-101",
+        "content": "The AI Engineering Summit takes place at Cape Town Convention Centre."
+      }
+    ],
+    "expected_status": "insufficient_evidence",
+    "required_facts": [],
+    "expected_citation_ids": []
+  },
+  {
+    "case_id": "GEN-006",
+    "scenario": "Contradictory evidence",
+    "question": "What time does check-in close for EVT-101?",
+    "evidence": [
+      {
+        "record_id": "POL-003",
+        "source_reference": "data/structured/policies.csv#policy_id=POL-003",
+        "content": "Check-in closes at 08:45."
+      },
+      {
+        "record_id": "SYNTHETIC-CONFLICT-001",
+        "source_reference": "data/evaluation/synthetic_conflict.json#record=001",
+        "content": "Check-in closes at 09:15."
+      }
+    ],
+    "expected_status": "insufficient_evidence",
+    "required_facts": [],
+    "expected_citation_ids": []
+  },
+  {
+    "case_id": "GEN-007",
+    "scenario": "Context-resolved follow-up",
+    "question": "What time does its check-in close? [Event context: EVT-101]",
+    "evidence": [
+      {
+        "record_id": "POL-003",
+        "source_reference": "data/structured/policies.csv#policy_id=POL-003",
+        "content": "Check-in for EVT-101 closes at 08:45."
+      }
+    ],
+    "expected_status": "generated",
+    "required_facts": ["08:45"],
+    "expected_citation_ids": ["POL-003"]
+  }
+]

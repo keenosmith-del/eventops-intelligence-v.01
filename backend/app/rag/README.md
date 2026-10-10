@@ -538,3 +538,41 @@ The generation service remains disabled by default.
 
 See docs/testing/README.md for the complete
 end-to-end verification record.
+
+## Generation Grounding Evaluation
+
+Module: generation_evaluation.py
+
+Provides deterministic reference-based validation
+of generated RAG answers.
+
+It checks:
+
+- Expected generation or abstention status
+- Required answer facts
+- Expected source citations
+- Citation source-reference integrity
+- Presence of expected facts in cited evidence
+
+The evaluator detects common problems including:
+
+- Incorrect factual values
+- Invented citation identifiers
+- Incorrect source references
+- Missing supporting citations
+- Unsupported answers to conflicting evidence
+
+The evaluator does not make model requests.
+
+It does not provide universal semantic entailment
+or complete hallucination detection.
+
+Evaluation expectations and test evidence are
+stored in data/evaluation/generation_cases.json.
+
+Tests:
+
+python -m pytest tests/test_generation_evaluation.py -v
+
+The next phase will execute controlled generated
+responses against these reference cases.

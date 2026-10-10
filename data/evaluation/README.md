@@ -91,3 +91,34 @@ discarded before retrieval.
 Named-person entity resolution and more complete
 natural-language interpretation remain future
 improvements.
+
+## Generation Grounding Evaluation
+
+Dataset: generation_cases.json
+
+Contains seven reference-based answer scenarios:
+
+- Direct factual answer
+- Event venue
+- Multi-source answer
+- No evidence
+- Irrelevant evidence
+- Contradictory evidence
+- Context-resolved follow-up
+
+Each case defines:
+
+- Question
+- Supplied evidence
+- Expected response status
+- Required factual answer fragments
+- Expected citation identifiers
+
+Some evidence is deliberately synthetic.
+
+Synthetic evaluation fixtures are not included in
+the authoritative PostgreSQL knowledge base.
+
+The dataset defines expected behaviour.
+
+It does not contain measured Gemini performance.

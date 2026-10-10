@@ -125,3 +125,25 @@ claim-level grounding reliability, or performance
 across more complex questions.
 
 Additional grounding evaluations remain necessary.
+
+## Milestone 07C.1 — Offline Grounding Evaluator
+
+A reference-based generation evaluator is available.
+
+It separates:
+
+1. Retrieval accuracy
+2. Generated answer accuracy
+3. Source citation integrity
+4. Appropriate abstention
+
+The evaluation includes both valid example answers
+and deliberately incorrect example answers.
+
+Passing unit tests confirm that the evaluation
+rules behave as intended.
+
+They do not measure Gemini's actual success rate.
+
+Live model evaluation results will be reported
+separately with explicit sample sizes and limitations.
