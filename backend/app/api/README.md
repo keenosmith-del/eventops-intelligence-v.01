@@ -334,3 +334,25 @@ disabled or unavailable.
 
 Successful live Gemini generation has not yet
 been verified.
+
+## Live Generated-Answer Persistence
+
+The complete Conversation API generation workflow
+has been verified with real Gemini generation.
+
+A successful request persisted:
+
+1. The original user question
+2. The PostgreSQL retrieval result
+3. The generated answer and verified citation
+
+The conversation was reloaded through the API,
+and all three messages were recovered.
+
+The retrieved source was POL-003, and the generated
+answer correctly identified the 08:45 check-in
+deadline for EVT-101.
+
+Generation is disabled by default and must not be
+enabled for public access without session security,
+request limits and usage monitoring.

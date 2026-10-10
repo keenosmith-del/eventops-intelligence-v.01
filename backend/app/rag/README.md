@@ -522,3 +522,19 @@ Production use still requires:
 - API request rate limiting
 - Provider usage monitoring
 - Claim-level answer evaluation
+
+## Live Gemini Verification
+
+Milestone 07B verified successful grounded generation
+using gemini-3.5-flash-lite.
+
+The model generated the correct 08:45 check-in
+deadline for EVT-101 using evidence record POL-003.
+
+The returned citation identifier was validated
+against the retrieved source evidence.
+
+The generation service remains disabled by default.
+
+See docs/testing/README.md for the complete
+end-to-end verification record.
