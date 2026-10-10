@@ -16,7 +16,6 @@ export default function Evidence({ records = [], messageId }) {
           open={index === 0}
         >
           <summary>
-            <span className="rank">{String(index + 1).padStart(2, "0")}</span>
             <span className="evidence-title">
               <strong>{record.record_id}</strong>
               <span>
@@ -44,17 +43,7 @@ export default function Evidence({ records = [], messageId }) {
                 <dd>{record.document_id}</dd>
               </div>
             </dl>
-            <details className="metadata">
-              <summary>Source metadata</summary>
-              <dl>
-                {Object.entries(record.metadata || {}).map(([key, value]) => (
-                  <div key={key}>
-                    <dt>{key}</dt>
-                    <dd>{String(value)}</dd>
-                  </div>
-                ))}
-              </dl>
-            </details>
+
           </div>
         </details>
       ))}

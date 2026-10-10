@@ -4,6 +4,8 @@ Inference Group AI Engineering assessment: an integrated React workspace for str
 
 ## Current status
 
+Latest checkpoint: the shared application design is complete for Phase 1 review. Approved entry pages are preserved; build, **8 frontend API-client tests**, **22 browser tests** and **191 backend tests** pass (one opt-in backend test skipped). [Current phase report and assessment compliance](docs/testing/APPLICATION_PHASE1.md) distinguishes implemented, locally/external-provider verified and still-blocked work. CSV/JSON uploads, unseen-input expansion and real n8n automation remain later increments. Nothing is deployed or automatically committed.
+
 | Requirement | Actual implementation / evidence |
 | --- | --- |
 | Three structured documents, real embeddings, semantic retrieval | events.csv (3), policies.csv (9), directory.json (7); 19 persisted 384-dimensional embeddings, PostgreSQL/pgvector |
@@ -46,13 +48,13 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://127.0.0.1:5173/signin and **Continue as reviewer**. This creates demonstration access, not genuine authentication; no personal credentials are needed. The backend reads the **root** `.env`. Local `DEMO_MODE=false` exposes the local synthetic dataset without session ownership enforcement. Public deployments must use `DEMO_MODE=true` and exact `FRONTEND_ORIGINS`; old unowned local conversations/runs then remain inaccessible to reviewers.
+Open http://127.0.0.1:5173/ and select **Start**, then **Enter workspace**. This creates demonstration access, not genuine authentication; no personal credentials are needed. The backend reads the **root** `.env`. Local `DEMO_MODE=false` exposes the local synthetic dataset without session ownership enforcement. Public deployments must use `DEMO_MODE=true` and exact `FRONTEND_ORIGINS`; old unowned local conversations/runs then remain inaccessible to reviewers.
 
 Vite proxies `/api` and `/health` to port 5050. `API_PROXY_TARGET` can select an isolated local test server. Production uses the public `VITE_API_BASE_URL`, which is embedded at build time. Provider keys and PostgreSQL credentials stay server-side.
 
 ## Walkthroughs
 
-**Journey A:** Enter reviewer demo → create a conversation → ask “What time does check-in close for EVT-101?” → inspect POL-003 and the original policy reference → request optional Gemini generation (unavailable while disabled) → ask “What time does its check-in close?” → inspect inherited EVT-101 context → reopen history/UUID. Successful saved answers retain citations; unsuccessful generation outcomes are not persisted by the existing history API, and the UI explicitly reports that historical uncertainty.
+**Journey A:** Enter reviewer demo → type “What time does check-in close for EVT-101?” in the integrated composer → press Enter to automatically create and title a conversation → inspect POL-003 and the original policy reference → optionally enable Gemini in Answer options (unavailable while disabled) → ask “What time does its check-in close?” → inspect inherited EVT-101 context → reopen through sidebar history or Open saved chat/UUID. Successful saved answers retain citations; unsuccessful generation outcomes are not persisted by the existing history API, and the UI explicitly reports that historical uncertainty. [Workspace visual audit](docs/testing/WORKSPACE_REDESIGN.md) documents the redesign and verification.
 
 **Journey B:** Open Agent Workspace → Run verification → observe real persisted stages → select Calendar/Email/Web steps → inspect normalization, duplicate counts and discrepancies → inspect a record's source/reference evidence → export all or verified-only CSV → reopen Execution History and restore graph state. Email is skipped until a real sandbox is configured. No external email is sent.
 

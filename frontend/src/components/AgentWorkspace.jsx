@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ReactFlow, Handle, Position, MarkerType } from "@xyflow/react";
+import { Check, Clock3, LoaderCircle, Minus, X } from "lucide-react";
 import "@xyflow/react/dist/style.css";
 import { api } from "../api.js";
+import { workspaceError } from "../workspace-errors.js";
 
 const labels = {
   trigger: "Run trigger",
@@ -32,11 +34,13 @@ const coordinates = [
   [240, 360],
 ];
 function Stage({ data }) {
+  const StateIcon = { pending: Clock3, running: LoaderCircle, completed: Check, failed: X, skipped: Minus }[data.status];
   return (
     <div className={`flow-stage ${data.status || "blueprint"}`}>
       <Handle type="target" position={Position.Top} />
       <span className="eyebrow">
-        {data.number} / {data.status || "Workflow stage"}
+        {StateIcon && <StateIcon size={12} strokeWidth={1.5} aria-hidden="true" />}
+        {data.status || "Workflow stage"}
       </span>
       <strong>{data.label}</strong>
       <Handle type="source" position={Position.Bottom} />
@@ -44,6 +48,23 @@ function Stage({ data }) {
   );
 }
 const nodeTypes = { stage: Stage };
+
+function elapsed(start, finish) {
+  if (!start || !finish) return "Not recorded";
+  const milliseconds = Date.parse(finish) - Date.parse(start);
+  return Number.isFinite(milliseconds) && milliseconds >= 0 ? `${(milliseconds / 1000).toFixed(2)} seconds` : "Not recorded";
+}
+
+function ExecutionData({ value }) {
+  if (value === null || value === undefined) return <span>Not recorded</span>;
+  if (Array.isArray(value)) return value.length ? <details className="execution-data"><summary>{value.length} {value.length === 1 ? "item" : "items"}</summary>{value.map((item, index) => <div className="execution-data-item" key={index}><ExecutionData value={item} /></div>)}</details> : <span>None</span>;
+  if (typeof value === "object") return Object.keys(value).length ? <dl className="execution-data">{Object.entries(value).map(([key, item]) => <div key={key}><dt>{key.replaceAll("_", " ")}</dt><dd><ExecutionData value={item} /></dd></div>)}</dl> : <span>No values recorded</span>;
+  return <span>{typeof value === "boolean" ? value ? "Yes" : "No" : String(value)}</span>;
+}
+
+function incomplete(record) {
+  return record.issues.some(issue => issue.startsWith("missing_"));
+}
 
 export async function downloadResults(runId, verifiedOnly = false) {
   const blob = await api.exportRun(runId, verifiedOnly),
@@ -61,7 +82,7 @@ export function ResultTable({ run, onExport }) {
   const [filter, setFilter] = useState("all"),
     [selected, setSelected] = useState(null);
   const records = run.results || [];
-  const rows = records.filter((r) => filter === "all" || r.status === filter);
+  const rows = records.filter((r) => filter === "all" || (filter === "incomplete" ? incomplete(r) : r.status === filter));
   const record = records.find((r) => r.id === selected);
   return (
     <section className="results-section">
@@ -77,6 +98,7 @@ export function ResultTable({ run, onExport }) {
             <option value="all">All records</option>
             <option value="verified">Verified</option>
             <option value="review_required">Flagged</option>
+            <option value="incomplete">Missing details</option>
           </select>
         </label>
         {onExport && (
@@ -88,10 +110,10 @@ export function ResultTable({ run, onExport }) {
       </div>
       <div className="metrics">
         {[
-          ["Records", run.summary?.total || 0],
-          ["Verified", run.summary?.verified || 0],
-          ["Flagged", run.summary?.flagged || 0],
-          ["Duplicates merged", run.summary?.duplicates_merged || 0],
+          ["Records", run.summary?.total ?? "Not recorded"],
+          ["Verified", run.summary?.verified ?? "Not recorded"],
+          ["Flagged", run.summary?.flagged ?? "Not recorded"],
+          ["Duplicates merged", run.summary?.duplicates_merged ?? "Not recorded"],
         ].map(([label, value]) => (
           <div key={label}>
             <span>{label}</span>
@@ -122,6 +144,7 @@ export function ResultTable({ run, onExport }) {
               </tr>
             </thead>
             <tbody>
+              {!rows.length && <tr><td colSpan={7}>No records match this filter.</td></tr>}
               {rows.map((item) => (
                 <tr key={item.id}>
                   <td>
@@ -130,6 +153,7 @@ export function ResultTable({ run, onExport }) {
                         ? "Verified"
                         : "Review required"}
                     </span>
+                    {incomplete(item) && <small>Missing details</small>}
                   </td>
                   <td>{item.full_name || item.title || "Missing name"}</td>
                   <td>
@@ -138,7 +162,7 @@ export function ResultTable({ run, onExport }) {
                   </td>
                   <td>{item.starts_at || "Not provided"}</td>
                   <td>{item.duplicate_count}</td>
-                  <td>{item.issues.join(", ") || "None"}</td>
+                  <td title={item.issues.join(", ")}>{item.issues.map(issue => issue.replaceAll("_", " ")).join(", ") || "None"}</td>
                   <td>
                     <button onClick={() => setSelected(item.id)}>
                       Inspect record
@@ -163,25 +187,11 @@ export function ResultTable({ run, onExport }) {
             Decision: <strong>{record.status}</strong>
           </p>
           <h3>Normalized fields</h3>
-          <pre>
-            {JSON.stringify(
-              Object.fromEntries(
-                [
-                  "id",
-                  "event_id",
-                  "full_name",
-                  "email",
-                  "title",
-                  "starts_at",
-                  "venue",
-                  "duplicate_count",
-                  "issues",
-                ].map((k) => [k, record[k]]),
-              ),
-              null,
-              2,
-            )}
-          </pre>
+          <dl className="normalized-fields">{[
+            ["Event", record.event_id], ["Name", record.full_name], ["Email", record.email],
+            ["Title", record.title], ["Schedule", record.starts_at], ["Venue", record.venue],
+            ["Duplicates", record.duplicate_count], ["Discrepancies", record.issues.join(", ")],
+          ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value === 0 ? "0" : value || "Not provided"}</dd></div>)}</dl>
           <h3>Observed evidence</h3>
           {record.evidence.map((item, i) => (
             <div className="observed-evidence" key={i}>
@@ -223,6 +233,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
   const lock = useRef(false),
     flowSurface = useRef(null);
   const [flow, setFlow] = useState(null);
+  const [loadingRuns, setLoadingRuns] = useState(true);
   useEffect(() => {
     if (!flow || !flowSurface.current) return;
     const observer = new ResizeObserver(() =>
@@ -233,6 +244,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
   }, [flow]);
   useEffect(() => {
     const c = new AbortController();
+    setLoadingRuns(true);
     Promise.all([api.connections(c.signal), api.runs(c.signal)])
       .then(([tools, history]) => {
         if (!c.signal.aborted) {
@@ -241,8 +253,8 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
         }
       })
       .catch((err) => {
-        if (!c.signal.aborted) setError(err.message);
-      });
+        if (!c.signal.aborted) setError(workspaceError(err));
+      }).finally(() => { if (!c.signal.aborted) setLoadingRuns(false); });
     return () => c.abort();
   }, [runId, view]);
   useEffect(() => {
@@ -259,7 +271,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
           if (["pending", "running"].includes(result.status))
             timer = setTimeout(poll, 1500);
         } catch (err) {
-          if (!c.signal.aborted) setError(err.message);
+          if (!c.signal.aborted) setError(workspaceError(err));
         }
       };
       poll();
@@ -282,7 +294,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       });
       navigate(`/agents/runs/${result.id}`);
     } catch (err) {
-      setError(err.message);
+      setError(workspaceError(err));
     } finally {
       lock.current = false;
       setBusy(false);
@@ -295,23 +307,22 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       await downloadResults(runId, verifiedOnly);
       setRun(await api.run(runId));
     } catch (err) {
-      setError(err.message);
+      setError(workspaceError(err));
     } finally {
       setBusy(false);
     }
   }
   const step = run?.steps?.find((item) => item.node_id === selected);
-  const nodes = order.map((key, i) => ({
+  const nodes = useMemo(() => order.map((key, i) => ({
     id: key,
     type: "stage",
     position: { x: coordinates[i][0], y: coordinates[i][1] },
     data: {
       label: labels[key],
-      number: String(i + 1).padStart(2, "0"),
       status: run?.steps?.find((s) => s.node_id === key)?.status,
     },
-  }));
-  const edges = order
+  })), [run?.steps]);
+  const edges = useMemo(() => order
     .slice(1)
     .map((key, i) => ({
       id: `${order[i]}-${key}`,
@@ -320,27 +331,20 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       type: "smoothstep",
       markerEnd: { type: MarkerType.ArrowClosed, color: "#abb1a2" },
       style: { stroke: "#abb1a2", strokeWidth: 1 },
-    }));
+    })), []);
   const title =
     view === "results"
-      ? "Evidence, reconciled."
+      ? "Verification results"
       : view === "history"
-        ? "Every execution, retained."
-        : "From sources to decisions.";
+        ? "Execution history"
+        : "Agent workspace";
   return (
     <div className="agent-page">
       <div className="page-intro">
-        <p className="eyebrow">
-          {view === "results"
-            ? "03 / Verification Results"
-            : view === "history"
-              ? "04 / Execution History"
-              : "02 / Agent Workspace"}
-        </p>
+
         <h1>{title}</h1>
         <p>
-          Read-only tools, deterministic checks and a durable record of what
-          actually happened.
+          Review source reads, verification checks and saved execution results.
         </p>
       </div>
       {error && (
@@ -351,6 +355,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       )}
       {view === "workspace" && (
         <>
+          {loadingRuns && <p role="status">Loading tool configuration…</p>}
           <div className="connection-cards">
             {connections.map((tool) => (
               <div className="panel" key={tool.id}>
@@ -361,7 +366,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
                   {run?.summary?.tools?.[tool.id] ||
                     tool.status.replace("_", " ")}
                 </span>
-                <p>{tool.note}</p>
+                <p>{tool.id === "email" ? tool.status === "configured" ? "Read-only sandbox access is configured. Connectivity is checked during a run." : "Connect a Mailtrap sandbox in server settings to read test messages." : tool.note}</p>
                 <code>
                   {tool.source || "Server-side configuration required"}
                 </code>
@@ -418,13 +423,13 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
                 api
                   .runs()
                   .then(setRuns)
-                  .catch((err) => setError(err.message))
+                  .catch((err) => setError(workspaceError(err)))
               }
             >
               Refresh executions
             </button>
           </div>
-          {runs.length ? (
+          {loadingRuns ? <p role="status">Loading saved executions…</p> : runs.length ? (
             <div className="recent-grid">
               {runs.map((item) => (
                 <button
@@ -442,10 +447,11 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
                     {new Date(item.created_at).toLocaleString()} ·{" "}
                     {item.id.slice(0, 8)}
                   </small>
+                  <span className="execution-metadata">{item.summary?.total !== undefined ? `${item.summary.total} records` : "Results not recorded"}{item.summary?.tools && ` · Tools: ${Object.keys(item.summary.tools).join(", ")}`}</span>
                 </button>
               ))}
             </div>
-          ) : (
+          ) : error ? <p>Saved executions are unavailable. Reload this view to retry.</p> : (
             <p>
               No executions saved yet. Run verification from the Agent
               Workspace.
@@ -487,7 +493,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
                 aria-label="Select execution step"
               >
                 {order.map((key) => (
-                  <button key={key} onClick={() => setSelected(key)}>
+                  <button key={key} aria-pressed={selected === key} onClick={() => setSelected(key)}>
                     {labels[key]}
                     {run
                       ? " · " +
@@ -519,12 +525,14 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
                         ? new Date(step.finished_at).toLocaleString()
                         : "Not finished"}
                     </dd>
+                    <dt>Recorded duration</dt>
+                    <dd>{elapsed(step.started_at, step.finished_at)}</dd>
                   </dl>
                   {step.error && <p className="error-text">{step.error}</p>}
                   <h3>Inputs</h3>
-                  <pre>{JSON.stringify(step.inputs, null, 2)}</pre>
+                  <ExecutionData value={step.inputs} />
                   <h3>Outputs / validation</h3>
-                  <pre>{JSON.stringify(step.outputs, null, 2)}</pre>
+                  <ExecutionData value={step.outputs} />
                 </>
               ) : (
                 <p>

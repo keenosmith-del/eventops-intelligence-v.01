@@ -45,7 +45,7 @@ export default function Exchange({
       </div>
       <div className="result">
         <div className="section-label">
-          <span className="small-mark">↳</span>
+          <img className="assistant-avatar" src="/mascot-head.png" alt="EventOps assistant" />
           <span>Retrieved evidence</span>
           <span className="pill">
             {retrieval?.evidence?.length || 0}{" "}
@@ -70,10 +70,7 @@ export default function Exchange({
             ) : (
               <Evidence records={retrieval.evidence} messageId={retrieval.id} />
             )}
-            <details className="query-plan">
-              <summary>Retrieval query & filters</summary>
-              <pre>{JSON.stringify(retrieval.query_plan, null, 2)}</pre>
-            </details>
+
           </>
         )}
         <p

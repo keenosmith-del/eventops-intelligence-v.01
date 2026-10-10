@@ -63,6 +63,7 @@ const answer = {
 };
 
 async function fixtureApi(page, status = "not_requested") {
+  let submitted = false;
   await page.route("**/api/demo/session", (route) =>
     route.fulfill({
       json: { session_token: "test-reviewer-token", demo_mode: false },
@@ -75,6 +76,7 @@ async function fixtureApi(page, status = "not_requested") {
     const req = route.request();
     const path = new URL(req.url()).pathname;
     if (path.endsWith("/messages")) {
+      submitted = true;
       expect(req.postDataJSON()).toEqual({
         question: "What time does its check-in close?",
         top_k: 5,
@@ -91,7 +93,7 @@ async function fixtureApi(page, status = "not_requested") {
         },
       });
     } else if (path.endsWith(id))
-      await route.fulfill({ json: { conversation, messages: [] } });
+      await route.fulfill({ json: { conversation, messages: submitted ? (status === "generated" ? [question, retrieval, answer] : [question, retrieval]) : [] } });
     else if (req.method() === "POST")
       await route.fulfill({ status: 201, json: conversation });
     else await route.fulfill({ json: [] });
@@ -106,17 +108,13 @@ for (const [status, text] of [
 ]) {
   test(`shows ${status} honestly with source evidence`, async ({ page }) => {
     await fixtureApi(page, status);
-    await page.goto("/");
-    await page
-      .getByText("Conversation history", { exact: false })
-      .first()
-      .click();
+    await page.goto("/workspace");
     await expect(page.getByText("No conversations yet.")).toBeVisible();
-    await page.getByLabel("Conversation title").fill("EVT-101 briefing");
-    await page.getByRole("button", { name: "Create conversation" }).click();
     await page.getByLabel("Ask your first question").fill(question.content);
-    if (status !== "not_requested")
+    if (status !== "not_requested") {
+      await page.getByText("Answer options", { exact: true }).click();
       await page.getByLabel("Request Gemini answer").check();
+    }
     await page.getByRole("button", { name: "Ask question" }).click();
     await expect(page.getByText(text, { exact: false })).toBeVisible();
     await expect(
@@ -150,11 +148,8 @@ test("restores original question and citations without inventing historical outc
       json: { conversation, messages: [question, retrieval, answer] },
     }),
   );
-  await page.goto("/");
-  await page
-    .getByText("Conversation history", { exact: false })
-    .first()
-    .click();
+  await page.goto("/workspace");
+  await page.getByText("Open saved chat", { exact: true }).click();
   await page.getByLabel("Open by UUID").fill(id);
   await page.getByRole("button", { name: "Open conversation by UUID" }).click();
   await expect(
@@ -169,15 +164,15 @@ test("backend unavailable and agent preview on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route("**/health", (route) => route.abort());
   await page.route("**/api/conversations**", (route) => route.abort());
-  await page.goto("/");
+  await page.goto("/workspace");
   await expect(
-    page.getByText("API unreachable", { exact: true }),
+    page.getByText("Connection unavailable.", { exact: false }).first(),
   ).toBeVisible();
   await expect(
-    page.getByText("The backend is unreachable.", { exact: false }),
+    page.getByText("Connection unavailable.", { exact: false }).first(),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Create conversation" }),
+    page.getByRole("button", { name: "Ask question" }),
   ).toBeVisible();
   expect(
     await page.evaluate(
@@ -199,9 +194,10 @@ test("backend unavailable and agent preview on mobile", async ({ page }) => {
   await page.route("**/api/agents/runs", (route) =>
     route.fulfill({ json: [] }),
   );
-  await page.getByRole("link", { name: "Agent Workspace" }).click();
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.getByRole("link", { name: "Agent workspace", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "From sources to decisions." }),
+    page.getByRole("heading", { name: "Agent workspace" }),
   ).toBeVisible();
   await expect(page.getByText("not connected", { exact: true })).toBeVisible();
 });
@@ -252,8 +248,8 @@ test("real API: create, retrieve, follow up, restore original wording and source
     "Opt in with RUN_LIVE_API=true; requires PostgreSQL and indexed sources.",
   );
   await page.goto("/signin");
-  await page.getByRole("button", { name: "Continue as reviewer" }).click();
-  await page.getByRole("heading", { name: "Ask with confidence." }).waitFor();
+  await page.getByRole("button", { name: "Enter workspace" }).click();
+  await page.getByRole("heading", { name: "What would you like to know?" }).waitFor();
   const demoHeaders = {
     "X-Demo-Session": await page.evaluate(() =>
       sessionStorage.getItem("eventops-demo-token"),
@@ -266,20 +262,15 @@ test("real API: create, retrieve, follow up, restore original wording and source
     config.generation_enabled,
     "Live browser regression requires GEMINI_ENABLED=false",
   ).toBe(false);
-  await page
-    .getByLabel("Conversation title")
-    .fill(`Frontend verification ${new Date().toISOString()}`);
-  await page.getByRole("button", { name: "Create conversation" }).click();
+  await page.getByLabel("Ask your first question").fill("Where is EVT-101 being held?");
+  await page.getByRole("button", { name: "Ask question" }).click();
   await expect(page).toHaveURL(/\/conversations\/[0-9a-f-]+/);
   const realId = page.url().split("/").at(-1);
-  await page
-    .getByLabel("Ask your first question")
-    .fill("Where is EVT-101 being held?");
-  await page.getByRole("button", { name: "Ask question" }).click();
   await expect(
     page.getByText("AI generation was not requested", { exact: false }),
   ).toBeVisible({ timeout: 90000 });
   await page.getByLabel("Continue the conversation").fill(question.content);
+  await page.getByText("Answer options", { exact: true }).click();
   await page.getByLabel("Request Gemini answer").check();
   const exchangeResponse = page.waitForResponse(
     (response) =>
@@ -303,6 +294,7 @@ test("real API: create, retrieve, follow up, restore original wording and source
   });
   expect(beforeResponse.ok()).toBe(true);
   const before = await beforeResponse.json();
+  expect(before.conversation.title).toBe("Where is EVT-101 being held?");
   expect(
     before.messages
       .filter((message) => message.kind === "question")
@@ -345,11 +337,11 @@ test("real API: create, retrieve, follow up, restore original wording and source
     await request.get(`/api/conversations/${realId}`, { headers })
   ).json();
   expect(after.messages).toEqual(before.messages);
-  await page.getByRole("link", { name: "Knowledge Assistant" }).click();
-  await page
-    .getByText("Conversation history", { exact: false })
-    .first()
-    .click();
+  await page.getByRole("link", { name: "Knowledge assistant" }).click();
+  await page.locator(".chat-history-item").filter({ hasText: "Where is EVT-101 being held?" }).click();
+  await expect(page.getByRole("heading", { name: question.content })).toBeVisible();
+  await page.getByRole("link", { name: "Knowledge assistant" }).click();
+  await page.getByText("Open saved chat", { exact: true }).click();
   await page.getByLabel("Open by UUID").fill(realId);
   await page.getByRole("button", { name: "Open conversation by UUID" }).click();
   await expect(
@@ -369,4 +361,127 @@ test("real API: create, retrieve, follow up, restore original wording and source
     path: "/tmp/eventops-workspace-mobile.png",
     fullPage: true,
   });
+});
+
+test("automatic first-message failure keeps the created chat and draft for retry", async ({ page }) => {
+  await fixtureApi(page);
+  let creates = 0, attempts = 0, submitted = false;
+  await page.route("**/api/conversations**", async route => {
+    const request = route.request(), path = new URL(request.url()).pathname;
+    if (path.endsWith("/messages")) {
+      attempts += 1;
+      if (attempts === 1) return route.fulfill({ status: 422, json: { detail: "The question requires event context." } });
+      submitted = true;
+      return route.fulfill({ json: { conversation_id: id, messages: [question, retrieval], generation_status: "not_requested" } });
+    }
+    if (path.endsWith(id)) return route.fulfill({ json: { conversation, messages: submitted ? [question, retrieval] : [] } });
+    if (request.method() === "POST") {
+      creates += 1;
+      expect(request.postDataJSON()).toEqual({ title: question.content });
+      return route.fulfill({ status: 201, json: conversation });
+    }
+    return route.fulfill({ json: [conversation] });
+  });
+  await page.goto("/workspace");
+  await page.getByLabel("Ask your first question").fill(question.content);
+  await page.getByLabel("Ask your first question").press("Enter");
+  await expect(page).toHaveURL(new RegExp(id));
+  await expect(page.getByRole("alert")).toContainText("The question requires event context.");
+  await expect(page.getByLabel("Ask your first question")).toHaveValue(question.content);
+  await page.getByRole("button", { name: "Ask question" }).click();
+  await expect(page.getByText("AI generation was not requested", { exact: false })).toBeVisible();
+  expect(creates).toBe(1);
+  expect(attempts).toBe(2);
+});
+
+test("composer source menu, multiline input, navigation rail and mobile drawer", async ({ page }) => {
+  await fixtureApi(page);
+  await page.route("**/api/knowledge/sources", route => route.fulfill({ json: { total_records: 3, sources: [{ document_id: "events.csv", record_count: 3 }] } }));
+  await page.goto("/workspace");
+  await expect(page.getByRole("heading", { name: "What would you like to know?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ask question" })).toBeDisabled();
+  await expect(page.getByRole("complementary", { name: "Conversation context" })).toHaveCount(0);
+  await page.getByLabel("Ask your first question").fill("First line");
+  await page.getByLabel("Ask your first question").press("Shift+Enter");
+  await expect(page.getByLabel("Ask your first question")).toHaveValue("First line\n");
+  await page.getByRole("button", { name: "Knowledge documents" }).click();
+  await expect(page.getByRole("link", { name: /events.csv/ })).toBeVisible();
+  await expect(page.getByText("Document uploads are unavailable.")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".source-menu")).toHaveCount(0);
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  const nav = page.getByRole("link", { name: "Agent workspace", exact: true });
+  await expect(nav.locator("svg")).toBeVisible();
+  await nav.hover();
+  await expect(page.getByRole("tooltip", { name: "Agent workspace", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Expand sidebar" })).toBeVisible();
+  await page.getByRole("button", { name: "Expand sidebar" }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await expect(page.getByRole("dialog", { name: "Workspace navigation" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "Open navigation" })).toBeFocused();
+  await expect(page.getByRole("dialog", { name: "Workspace navigation" })).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("thinking mascot follows successful and failed API requests", async ({ page }) => {
+  await fixtureApi(page);
+  let release;
+  let gate = new Promise(resolve => { release = resolve; });
+  let fail = false;
+  await page.route("**/api/conversations/*/messages", async route => {
+    await gate;
+    await route.fulfill(fail ? { status: 503, json: { detail: "Verification service unavailable." } } : {
+      json: { conversation_id: id, messages: [question, retrieval], generation_status: "not_requested" },
+    });
+  });
+  await page.goto(`/conversations/${id}`);
+  await expect(page.getByAltText("EventOps assistant")).toHaveAttribute("src", "/mascot-thinking.png");
+  await expect(page.locator(".sidebar-avatar")).toHaveAttribute("src", "/mascot-head.png");
+  await page.getByLabel("Ask your first question").fill(question.content);
+  await page.getByRole("button", { name: "Ask question" }).click();
+  await expect(page.locator(".chat-welcome .mascot-presence")).toHaveClass(/is-thinking/);
+  await page.screenshot({ path: "/tmp/eventops-phase1-thinking-fixture.png", fullPage: true });
+  await expect(page.getByRole("status", { name: "" }).filter({ hasText: "Reviewing sources" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Ask question" })).toBeDisabled();
+  expect(await page.locator(".chat-mascot").evaluate(element => getComputedStyle(element).animationName)).toBe("none");
+  release();
+  await expect(page.getByRole("heading", { name: question.content })).toBeVisible();
+  await expect(page.locator(".is-thinking")).toHaveCount(0);
+  fail = true;
+  gate = new Promise(resolve => { release = resolve; });
+  await page.getByLabel("Continue the conversation").fill("Which policy supports that?");
+  await page.getByRole("button", { name: "Ask question" }).click();
+  await expect(page.locator(".pending-mascot.is-thinking")).toBeVisible();
+  release();
+  await expect(page.getByRole("alert")).toContainText("This request could not be completed. Please try again.");
+  await expect(page.locator(".is-thinking")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Ask question" })).toBeEnabled();
+});
+
+test("frosted rail tooltips, shared credits and reviewer session exit", async ({ page }) => {
+  await fixtureApi(page);
+  await page.goto("/workspace");
+  const footer = page.getByRole("contentinfo", { name: "Application credits" });
+  await expect(footer.locator("span").first()).toHaveText("Designed & Engineering by Keeno Smith");
+  await expect(footer.locator("span").last()).toHaveText("October 2026 (c) EventOps Intelligence v.01");
+  await expect(footer.locator("svg")).toHaveCount(1);
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await expect(page.getByRole("button", { name: "Expand sidebar" }).locator("svg")).toHaveClass(/lucide-arrow-right/);
+  for (const name of ["Knowledge assistant", "Agent workspace", "Verification results", "Execution history", "Knowledge sources"]) {
+    await page.getByRole("link", { name, exact: true }).focus();
+    await expect(page.getByRole("tooltip", { name, exact: true })).toBeVisible();
+  }
+  for (const [label, tooltip] of [["Settings", "Settings"], ["Leave reviewer session", "Leave session"]]) {
+    await page.getByRole("button", { name: label, exact: true }).focus();
+    const tip = page.getByRole("tooltip", { name: tooltip, exact: true });
+    await expect(tip).toBeVisible();
+    expect(await tip.evaluate(element => getComputedStyle(element).backdropFilter)).toBe("blur(12px)");
+  }
+  await page.getByRole("button", { name: "Leave reviewer session" }).click();
+  await expect(page).toHaveURL(/\/signin$/);
+  expect(await page.evaluate(() => sessionStorage.getItem("eventops-demo-token"))).toBeNull();
+  await expect(page.getByRole("button", { name: "Enter workspace" })).toBeVisible();
 });

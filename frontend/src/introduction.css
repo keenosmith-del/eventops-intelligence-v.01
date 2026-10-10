@@ -1,0 +1,176 @@
+/* Entry-only styles. Workspace typography and surfaces remain independent. */
+.intro-screen {
+  --intro-ink: #333b3d;
+  --intro-secondary: #515b5d;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  padding: 36px 48px 26px;
+  color: var(--intro-ink);
+  background: linear-gradient(160deg, #f6f3eb 0%, #efeee8 38%, #dce1df 75%, #c9d1d3 100%);
+  font-family: "Helvetica Neue", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+.intro-screen.intro-leaving { opacity: 0; }
+.intro-hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 16px 0 38px;
+}
+.intro-head {
+  width: clamp(88px, 11svh, 124px);
+  height: auto;
+  display: block;
+  margin-bottom: 22px;
+}
+.intro-screen .intro-title {
+  font-size: clamp(58px, min(13vw, 21svh), 184px);
+  line-height: .91;
+  letter-spacing: -.065em;
+  font-weight: 300;
+  margin: 0;
+}
+.intro-description {
+  font-size: clamp(14px, 1.15vw, 17px);
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--intro-secondary);
+  max-width: 470px;
+  margin: 34px 0 25px;
+  text-wrap: balance;
+}
+.intro-screen .intro-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  min-height: 48px;
+  min-width: 130px;
+  padding: 13px 24px;
+  border: 0;
+  border-radius: 999px;
+  background: #353e40;
+  color: #faf8f1;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: -.01em;
+  text-decoration: none;
+  transition: background 180ms ease;
+}
+.intro-screen .intro-action:hover:not(:disabled) { background: #485355; }
+.intro-screen .intro-action:active:not(:disabled) { transform: none; }
+.intro-screen .intro-start { min-width: 104px; min-height: 36px; padding: 7px 17px; gap: 13px; }
+.intro-action svg, .intro-back svg { transition: transform 220ms ease; flex-shrink: 0; }
+.intro-action:hover:not(:disabled) svg { transform: translateX(4px); }
+.intro-screen .intro-action:focus-visible, .intro-back:focus-visible {
+  outline: 2px solid #4d5b60;
+  outline-offset: 5px;
+}
+.intro-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 2px;
+  color: #586264;
+  font-size: 9px;
+  font-weight: 300;
+  letter-spacing: .005em;
+  line-height: 1.3;
+  text-align: center;
+}
+.intro-footer span:last-child { color: #677173; font-size: 8px; }
+.intro-arrive { animation: intro-reveal 800ms cubic-bezier(.2,.65,.3,1) both; }
+.intro-head { animation-name: intro-fade; }
+.intro-title { animation-delay: 120ms; }
+.intro-description { animation-delay: 250ms; }
+.intro-hero .intro-action { animation-delay: 370ms; }
+@keyframes intro-reveal { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes intro-fade { from { opacity: 0; } to { opacity: 1; } }
+.intro-back {
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  text-decoration: none;
+  color: var(--intro-secondary);
+  min-height: 28px;
+  font-size: 12px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #f8f5ed;
+  transition: background 220ms ease;
+}
+.intro-back:hover { color: var(--intro-ink); background: #fffdf7; }
+.intro-back:hover svg { transform: translateX(-4px); }
+.intro-entry-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: clamp(24px, 5vw, 80px);
+  width: min(1100px, 100%);
+  margin: 0 auto;
+  padding: 16px 0 38px;
+}
+.intro-character { display: flex; justify-content: center; }
+.intro-character img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: min(72svh, 700px);
+  object-fit: contain;
+}
+.intro-entry-panel {
+  width: 100%;
+  max-width: 480px;
+  padding: clamp(32px, 4vw, 58px);
+  border-radius: 36px;
+  background: rgb(255 255 255 / 32%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  animation-delay: 120ms;
+}
+.intro-screen .intro-entry-panel h1 {
+  font-size: clamp(32px, 3.4vw, 46px);
+  line-height: 1.1;
+  letter-spacing: -.045em;
+  font-weight: 400;
+  margin: 0 0 24px;
+  text-wrap: balance;
+}
+.intro-entry-description { color: var(--intro-secondary); font-size: 15px; line-height: 1.75; margin: 0 0 32px; }
+.intro-entry-panel .intro-action { width: 100%; gap: 18px; }
+.intro-access-note { position: relative; text-align: center; color: var(--intro-secondary); font-size: 12px; margin: 18px 0 0; }
+.intro-account-note { position: absolute; top: 100%; left: 0; right: 0; margin-top: 6px; color: #647073; font-size: 10px; line-height: 1.5; }
+.intro-error { color: #844333; font-size: 13px; line-height: 1.6; margin: 16px 0 0; overflow-wrap: anywhere; }
+@media (max-width: 700px) {
+  .intro-screen { padding: 20px 24px 22px; }
+  .intro-hero { padding: 24px 0 42px; }
+  .intro-head { width: 104px; margin-bottom: 26px; }
+  .intro-screen .intro-title { font-size: clamp(50px, 13.5vw, 94px); }
+  .intro-description { max-width: 330px; font-size: 14px; margin-top: 32px; }
+  .intro-entry-layout { grid-template-columns: 1fr; gap: 6px; width: min(440px, 100%); padding: 0 0 32px; }
+  .intro-character img { height: clamp(190px, 30svh, 280px); }
+  .intro-entry-panel { padding: 30px; border-radius: 28px; }
+  .intro-screen .intro-entry-panel h1 { font-size: 34px; margin-bottom: 18px; }
+  .intro-entry-description { font-size: 14px; margin-bottom: 24px; }
+}
+@media (max-height: 650px) and (min-width: 701px) {
+  .intro-screen { padding-top: 20px; }
+  .intro-head { width: 76px; margin-bottom: 12px; }
+  .intro-description { margin-top: 22px; margin-bottom: 18px; }
+  .intro-hero { padding-top: 0; padding-bottom: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .intro-screen, .intro-screen .intro-action { transition: none; }
+  .intro-arrive { animation: none; }
+  .intro-action svg, .intro-back, .intro-back svg { transition: none; }
+  .intro-action:hover:not(:disabled) svg, .intro-back:hover svg { transform: none; }
+}

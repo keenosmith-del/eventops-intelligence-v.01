@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { workspaceError } from "../workspace-errors.js";
 export default function KnowledgeSources() {
   const [data, setData] = useState(null),
     [error, setError] = useState("");
@@ -9,18 +10,19 @@ export default function KnowledgeSources() {
       .sources(c.signal)
       .then(setData)
       .catch((err) => {
-        if (!c.signal.aborted) setError(err.message);
+        if (!c.signal.aborted) setError(workspaceError(err));
       });
     return () => c.abort();
   }, []);
+  useEffect(() => {
+    if (data && window.location.hash) document.getElementById(decodeURIComponent(window.location.hash.slice(1)))?.scrollIntoView({ block: "start" });
+  }, [data]);
   return (
     <div className="sources-page">
       <div className="page-intro">
-        <p className="eyebrow">05 / Knowledge Sources</p>
-        <h1>A traceable foundation.</h1>
+        <h1>Knowledge sources</h1>
         <p>
-          Live indexed records from PostgreSQL. Each source retains its original
-          identifiers and provenance.
+          Indexed documents and their original source references.
         </p>
       </div>
       {error && (
@@ -37,12 +39,13 @@ export default function KnowledgeSources() {
           </p>
           <div className="source-documents">
             {data.sources.map((source) => (
-              <section className="panel" key={source.document_id}>
-                <h2>{source.document_id}</h2>
+              <section className="panel" id={`source-${source.document_id}`} key={source.document_id}>
+                <header className="source-heading"><h2>{source.document_id}</h2><span>{source.document_id.split(".").at(-1).toLowerCase()} source</span></header>
                 <p>
                   {source.record_count} records · {source.indexed_count}{" "}
                   embeddings stored
                 </p>
+                <p className="source-index-state">{source.indexed_count === source.record_count ? "All records indexed" : "Indexing incomplete"} · {Array.from(new Set(source.records.map(record => record.record_type))).join(", ")}</p>
                 {source.records.map((record) => (
                   <details className="source-row" key={record.record_id}>
                     <summary>
@@ -54,18 +57,15 @@ export default function KnowledgeSources() {
                     </summary>
                     <p>{record.content}</p>
                     <code>{record.metadata.source_reference}</code>
-                    <dl>
-                      <dt>Source SHA-256</dt>
-                      <dd>{record.metadata.source_sha256}</dd>
-                    </dl>
+
                   </details>
                 ))}
               </section>
             ))}
           </div>
+          {!data.sources.length && <p>No indexed sources are available.</p>}
           <p className="fine-print">
-            There is no upload action: no HTTP ingestion endpoint is
-            implemented. New sources must be validated and indexed server-side.
+            Document uploads are unavailable. These sources are managed by the workspace administrator.
           </p>
         </>
       )}

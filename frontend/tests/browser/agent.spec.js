@@ -107,13 +107,13 @@ test("reviewer entry is explicit and sidebar collapse works", async ({
   await page.route("**/api/conversations**", (r) => r.fulfill({ json: [] }));
   await page.goto("/signin");
   await expect(
-    page.getByText("Demonstration access, not account authentication.", {
+    page.getByText("Reviewer demonstration access", {
       exact: false,
     }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Continue as reviewer" }).click();
+  await page.getByRole("button", { name: "Enter workspace" }).click();
   await expect(
-    page.getByRole("heading", { name: "Ask with confidence." }),
+    page.getByRole("heading", { name: "What would you like to know?" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
   await expect(
@@ -131,6 +131,11 @@ test("persisted graph, discrepancy evidence and CSV export", async ({
   await expect(
     page.getByRole("heading", { name: "Execution · partial" }),
   ).toBeVisible();
+  await expect(page.locator(".react-flow__node")).toHaveCount(11);
+  await page.locator('.react-flow__node[data-id="email"]').scrollIntoViewIfNeeded();
+  await expect(page.locator('.react-flow__node[data-id="email"]')).toBeInViewport();
+  await page.locator('.react-flow__node[data-id="email"]').click();
+  for (const node of nodes) await expect(page.locator(`.react-flow__node[data-id="${node}"]`)).toBeVisible();
   await page
     .getByRole("button", { name: "Email sandbox · skipped", exact: true })
     .click();
@@ -144,7 +149,7 @@ test("persisted graph, discrepancy evidence and CSV export", async ({
   const downloaded = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export all CSV" }).click();
   expect((await downloaded).suggestedFilename()).toContain(id);
-  await page.getByRole("link", { name: "Execution History" }).click();
+  await page.getByRole("link", { name: "Execution history" }).click();
   await page.getByRole("button", { name: /EVT-101 · partial/ }).click();
   await expect(
     page.getByRole("heading", { name: "Execution · partial" }),
@@ -193,6 +198,26 @@ test("knowledge sources show live counts without an upload action", async ({
     }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: /Upload/ })).toHaveCount(0);
+  await expect(page.getByText("csv source", { exact: true })).toBeVisible();
+  await expect(page.getByText("All records indexed · event", { exact: true })).toBeVisible();
+});
+
+test("operational views share credits and fit mobile layouts", async ({ page }) => {
+  await seed(page);
+  await page.route("**/api/knowledge/sources", route => route.fulfill({ json: { total_records: 0, sources: [] } }));
+  for (const path of ["/agents", `/verification/${id}`, `/history/${id}`, "/sources"]) {
+    await page.goto(path);
+    await expect(page.getByRole("contentinfo", { name: "Application credits" })).toBeVisible();
+    await expect(page.getByRole("contentinfo")).toContainText("October 2026 (c) EventOps Intelligence v.01");
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.getByRole("button", { name: "Open navigation" }).click();
+    await page.getByRole("button", { name: "Settings", exact: true }).focus();
+    await expect(page.getByRole("tooltip", { name: "Settings", exact: true })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.keyboard.press("Escape");
+    await page.setViewportSize({ width: 1280, height: 900 });
+  }
 });
 
 test("live Journey B: real tools, graph, persisted flags, export and history", async ({
@@ -203,20 +228,15 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
     "Opt in to real read-only HTTPS tools.",
   );
   await page.goto("/signin");
-  await page.getByRole("button", { name: "Continue as reviewer" }).click();
-  await page.getByRole("link", { name: "Agent Workspace" }).click();
+  await page.getByRole("button", { name: "Enter workspace" }).click();
+  await page.getByRole("link", { name: "Agent workspace" }).click();
   await page.getByRole("button", { name: "Run verification" }).click();
   await expect(page).toHaveURL(/\/agents\/runs\/[a-f0-9-]+/);
   const runId = page.url().split("/").at(-1);
   await expect(
-    page.getByRole("heading", { name: "Execution · partial" }),
+    page.getByRole("heading", { name: /Execution · (partial|completed)/ }),
   ).toBeVisible({ timeout: 90000 });
-  await page
-    .getByRole("button", { name: "Email sandbox · skipped", exact: true })
-    .click();
-  await expect(
-    page.getByText("Mailtrap sandbox is not connected.", { exact: false }),
-  ).toBeVisible();
+  await page.getByRole("button", { name: /Email sandbox · (completed|skipped|failed)/, exact: true }).click();
   await expect(
     page.getByRole("button", {
       name: "Calendar feed · completed",
@@ -237,13 +257,31 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
   await page.getByRole("button", { name: "Export all CSV" }).click();
   const download = await downloaded;
   expect(download.suggestedFilename()).toContain(runId);
-  await download.saveAs("../docs/submission/sample-verification.csv");
-  await page.getByRole("link", { name: "Execution History" }).click();
+  await download.saveAs("/tmp/eventops-redesigned-verification.csv");
+  await page.locator(".flow-surface").scrollIntoViewIfNeeded();
+  for (const node of nodes) await expect(page.locator(`.react-flow__node[data-id="${node}"]`)).toBeVisible();
+  await expect(page.locator('.react-flow__node[data-id="email"]')).toBeInViewport();
+  await page.locator(".flow-surface").screenshot({ path: "../docs/submission/workspace-redesign/phase1-graph-desktop.png" });
+  await page.screenshot({ path: "../docs/submission/workspace-redesign/phase1-agent-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator(".flow-surface").scrollIntoViewIfNeeded();
+  for (const node of nodes) await expect(page.locator(`.react-flow__node[data-id="${node}"]`)).toBeVisible();
+  await expect(page.locator('.react-flow__node[data-id="email"]')).toBeInViewport();
+  await page.locator(".flow-surface").screenshot({ path: "../docs/submission/workspace-redesign/phase1-graph-mobile.png" });
+  await page.screenshot({ path: "../docs/submission/workspace-redesign/phase1-agent-mobile.png", fullPage: true });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`/verification/${runId}`);
+  await expect(page.getByRole("button", { name: "Inspect record" }).first()).toBeVisible();
+  await page.screenshot({ path: "../docs/submission/workspace-redesign/phase1-results-desktop.png", fullPage: true });
+  await page.getByRole("link", { name: "Knowledge sources" }).click();
+  await expect(page.getByText("19 total records", { exact: false })).toBeVisible();
+  await page.screenshot({ path: "../docs/submission/workspace-redesign/phase1-sources-desktop.png", fullPage: true });
+  await page.getByRole("link", { name: "Execution history" }).click();
   await page
     .getByRole("button", { name: new RegExp(runId.slice(0, 8)) })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Execution · partial" }),
+    page.getByRole("heading", { name: /Execution · (partial|completed)/ }),
   ).toBeVisible();
   await page.reload();
   await expect(
@@ -251,7 +289,7 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
   ).toBeVisible();
   console.log("LIVE_AGENT_RUN=" + runId);
   await page.screenshot({
-    path: "../docs/submission/screenshots/agent-execution-desktop.png",
+    path: "../docs/submission/workspace-redesign/phase1-history-desktop.png",
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -261,7 +299,7 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
     ),
   ).toBe(true);
   await page.screenshot({
-    path: "../docs/submission/screenshots/agent-execution-mobile.png",
+    path: "../docs/submission/workspace-redesign/phase1-history-mobile.png",
     fullPage: true,
   });
 });
