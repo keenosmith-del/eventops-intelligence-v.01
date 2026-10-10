@@ -39,6 +39,22 @@ class SearchHit:
     score: float
 
 
+# This protocol defines the interface for search providers. Any class that implements this protocol must
+# provide a search method that takes a query and optional filters, returning a list of SearchHit objects.
+class SearchProvider(Protocol):
+    """Shared search interface for retrieval backends."""
+
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        record_type: str | None = None,
+        event_id: str | None = None,
+        participant_status: str | None = None,
+        policy_category: str | None = None,
+    ) -> list[SearchHit]: ...
+
+
 class SemanticRetriever:
     """Rank structured knowledge records using cosine similarity."""
 

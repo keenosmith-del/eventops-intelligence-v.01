@@ -102,3 +102,19 @@ to verify local recovery.
 
 This is not yet a production backup or disaster
 recovery implementation.
+
+## Database Vector Retrieval
+
+The RAG module includes a PostgreSQL-backed semantic
+retriever in app/rag/postgres_retrieval.py.
+
+The repository stores knowledge records and embeddings.
+
+The retriever executes cosine similarity ranking
+against those persistent embeddings.
+
+This separates write-oriented knowledge persistence
+from read-oriented semantic retrieval.
+
+Both components use the shared PostgreSQL connection
+infrastructure provided by app/core/database.py.

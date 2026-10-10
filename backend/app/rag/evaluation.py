@@ -5,7 +5,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.rag.query import retrieve_question
-from app.rag.retrieval import SemanticRetriever
+from app.rag.retrieval import SearchProvider
 
 DEFAULT_EVALUATION_FILE = (
     Path(__file__).resolve().parents[3] / "data" / "evaluation" / "rag_questions.json"
@@ -55,7 +55,7 @@ def load_evaluation_cases(
 
 def evaluate_case(
     case: EvaluationCase,
-    retriever: SemanticRetriever,
+    retriever: SearchProvider,
 ) -> EvaluationOutcome:
 
     _, hits = retrieve_question(

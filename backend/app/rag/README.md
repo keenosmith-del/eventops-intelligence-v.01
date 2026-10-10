@@ -269,3 +269,61 @@ in-memory similarity search.
 Persistent pgvector retrieval will be implemented
 in the next stage.
 EOF
+
+## PostgreSQL-Backed Semantic Retrieval
+
+Module: postgres_retrieval.py
+
+PostgresSemanticRetriever implements the same search
+interface as the in-memory SemanticRetriever.
+
+It queries persistent pgvector embeddings directly
+inside PostgreSQL.
+
+Features:
+- Cosine-distance similarity ranking
+- Local query embedding generation
+- Event identifier validation
+- Event-specific filtering
+- Global policy inclusion
+- Participant status filtering
+- Policy category filtering
+- Source provenance preservation
+- Exclusion of records without embeddings
+
+The implementation uses exact nearest-neighbour search.
+
+No approximate vector index is necessary for the
+current 19-record knowledge base.
+
+## Retrieval Backend Interface
+
+The SearchProvider protocol allows query interpretation
+and evaluation to use either:
+
+- SemanticRetriever (in-memory)
+- PostgresSemanticRetriever (database-backed)
+
+Both return SearchHit objects containing the original
+KnowledgeRecord and a similarity score.
+
+## Database Retrieval Testing
+
+PostgreSQL must be running.
+
+Run:
+
+python -m pytest tests/test_postgres_retrieval.py -v
+
+Tests use transaction rollback to preserve the
+authoritative knowledge base.
+
+## Current Limitations
+
+- No approximate vector index
+- No database connection pool
+- No automatic concurrent indexing coordination
+- Records without embeddings cannot be semantically ranked
+- Query planning remains rule-based
+- Named-person resolution is not yet complete
+- Generated-answer grounding remains to be implemented

@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 
-from app.rag.retrieval import SearchHit, SemanticRetriever
+from app.rag.retrieval import SearchHit, SearchProvider
 
 # This module provides functions to interpret natural-language questions and retrieve relevant knowledge records
 # from a structured knowledge base. It uses regular expressions to identify specific terms in the query that
@@ -120,7 +120,7 @@ def interpret_query(question: str) -> QueryPlan:
 
 def retrieve_question(
     question: str,
-    retriever: SemanticRetriever,
+    retriever: SearchProvider,
     top_k: int = 5,
 ) -> tuple[QueryPlan, list[SearchHit]]:
     """Interpret a question and retrieve eligible evidence."""
