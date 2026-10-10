@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "directory_id": "EVENTOPS-REFERENCE-001",
+  "participants": [
+    {
+      "participant_id": "P-001",
+      "full_name": "Ada Mensah",
+      "email": "ada.mensah@example.com",
+      "organization": "Meridian Technologies",
+      "status": "active",
+      "registered_events": ["EVT-101"]
+    },
+    {
+      "participant_id": "P-002",
+      "full_name": "Theo Daniels",
+      "email": "theo.daniels@example.com",
+      "organization": "Nexa Digital",
+      "status": "active",
+      "registered_events": ["EVT-101"]
+    },
+    {
+      "participant_id": "P-003",
+      "full_name": "Lindi Mokoena",
+      "email": "lindi.mokoena@example.com",
+      "organization": "Apex Consulting",
+      "status": "inactive",
+      "registered_events": ["EVT-101"]
+    },
+    {
+      "participant_id": "P-004",
+      "full_name": "Amina Patel",
+      "email": "amina.patel@example.com",
+      "organization": "Greenline Retail",
+      "status": "active",
+      "registered_events": ["EVT-102"]
+    },
+    {
+      "participant_id": "P-005",
+      "full_name": "Johan Botha",
+      "email": "johan.botha@example.com",
+      "organization": "Meridian Technologies",
+      "status": "active",
+      "registered_events": ["EVT-102", "EVT-103"]
+    },
+    {
+      "participant_id": "P-006",
+      "full_name": "Chris Petersen",
+      "email": "chris.petersen@example.com",
+      "organization": "Fleet Systems",
+      "status": "active",
+      "registered_events": ["EVT-103"]
+    },
+    {
+      "participant_id": "P-007",
+      "full_name": "Naledi Dlamini",
+      "email": "naledi.dlamini@example.com",
+      "organization": "Logistics South",
+      "status": "active",
+      "registered_events": ["EVT-103"]
+    }
+  ]
+}

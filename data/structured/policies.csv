@@ -1,0 +1,10 @@
+policy_id,event_id,category,rule_text
+POL-001,ALL,identity,"All attendees must present valid photographic identification at registration."
+POL-002,ALL,cancellation,"Registration cancellations must be submitted at least 48 hours before the scheduled event start."
+POL-003,EVT-101,check_in,"Check-in for EVT-101 closes at 08:45 South Africa Standard Time."
+POL-004,EVT-101,eligibility,"Attendees must have an active directory record and a valid event registration to be verified."
+POL-005,EVT-102,check_in,"Check-in for EVT-102 closes at 09:15 South Africa Standard Time."
+POL-006,EVT-102,transfers,"Registration transfers require approval at least 24 hours before the event."
+POL-007,EVT-103,check_in,"Check-in for EVT-103 closes at 08:45 South Africa Standard Time."
+POL-008,EVT-103,recording,"Attendees require organizer approval before using professional recording equipment."
+POL-009,ALL,registration,"An invitation or confirmation email alone does not establish verified attendance eligibility."
