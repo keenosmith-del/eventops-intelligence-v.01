@@ -237,3 +237,35 @@ evaluation regression tests.
 The current implementation does not yet guarantee
 that named-person questions retrieve only the named
 participant.
+
+cat >> app/rag/README.md <<'EOF'
+
+## Persistent Knowledge Indexing
+
+Module: indexing.py
+
+The indexing coordinator connects structured ingestion
+to the PostgreSQL knowledge repository.
+
+It performs:
+
+1. Source document validation
+2. Idempotent knowledge record upserts
+3. Identification of missing embeddings
+4. Local embedding generation
+5. Persistent vector storage
+
+Run:
+
+python -m app.rag.indexing
+
+Knowledge records and embeddings survive database
+container restarts because PostgreSQL uses a
+Docker-managed persistent volume.
+
+The current semantic retriever still performs
+in-memory similarity search.
+
+Persistent pgvector retrieval will be implemented
+in the next stage.
+EOF

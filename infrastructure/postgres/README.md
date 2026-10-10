@@ -82,3 +82,49 @@ is considered complete.
 Runs locally through Docker Desktop.
 
 No cloud database subscription or paid API required.
+
+## Verified Persistence and Recovery
+
+The knowledge repository was tested with:
+
+- 19 structured knowledge records
+- 19 persistent 384-dimensional embeddings
+- PostgreSQL-backed source metadata
+- Idempotent repeated indexing
+- PostgreSQL integration tests
+
+Container recreation can be tested using:
+
+docker compose up -d --force-recreate --wait db
+
+The named Docker volume preserves database contents
+across container replacement.
+
+After recreation, verify:
+
+SELECT
+    COUNT(*) AS total_records,
+    COUNT(embedding) AS stored_embeddings
+FROM knowledge_records;
+
+Expected values for the current reference dataset:
+
+- 19 knowledge records
+- 19 stored embeddings
+
+Repeat the indexing operation:
+
+python -m app.rag.indexing
+
+Unchanged records should not be rewritten or embedded
+again.
+
+Important:
+
+Never use docker compose down -v unless intentionally
+deleting the database.
+
+This test verifies local persistence only.
+
+Cloud database recovery, backup restoration and
+multi-instance concurrency remain unverified.
