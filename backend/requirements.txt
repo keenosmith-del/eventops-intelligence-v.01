@@ -11,3 +11,7 @@ numpy
 # PostgreSQL connectivity and environment configuration
 psycopg[binary]
 python-dotenv
+
+# Bounded agent workflow and remote iCalendar parsing
+langgraph>=1.0,<2
+icalendar>=6,<8

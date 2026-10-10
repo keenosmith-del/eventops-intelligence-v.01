@@ -2,7 +2,8 @@ from collections.abc import Callable, Iterator
 from dataclasses import asdict
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from app.core.demo import session_id
 from pydantic import Field
 
 from app.api.rag import (
@@ -61,9 +62,9 @@ class RetrievalExchangeResponse(DomainModel):
     ] = "not_requested"
 
 
-def get_conversation_repository() -> Iterator[ConversationRepository]:
+def get_conversation_repository(request: Request) -> Iterator[ConversationRepository]:
     with connect_db() as connection:
-        yield ConversationRepository(connection)
+        yield ConversationRepository(connection, session_id(request))
 
 
 AnswerGenerator = Callable[

@@ -1,0 +1,12 @@
+CONTROLLED SYNTHETIC ASSESSMENT EMAIL — NOT A REAL REGISTRATION
+
+Registration reference: MAILTRAP-EVT101-001
+Event: evt-101
+Full name:   Lindi   Mokoena-Test
+Email:   LINDI.MOKOENA@EXAMPLE.COM
+Participant status claimed by submitter: active
+Registration requested: AI Engineering Summit
+
+Please verify this registration against the assessment event and participant
+directory before accepting it. This message intentionally contains inconsistent
+participant information for the EventOps verification exercise.

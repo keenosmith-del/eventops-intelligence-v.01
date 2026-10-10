@@ -1,0 +1,62 @@
+# No paid services or databases are provisioned. Supply a pgvector PostgreSQL URL.
+services:
+  - type: web
+    name: eventops-intelligence-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.lock.txt
+    startCommand: bash scripts/start-backend.sh
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.15
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: POSTGRES_SSLMODE
+        value: require
+      - key: DEMO_MODE
+        value: "true"
+      - key: FRONTEND_ORIGINS
+        sync: false
+      - key: GEMINI_ENABLED
+        value: "false"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_DAILY_LIMIT
+        value: "10"
+      - key: DEMO_SESSION_LIMIT
+        value: "100"
+      - key: DEMO_WRITE_LIMIT
+        value: "100"
+      - key: AGENT_DAILY_RUN_LIMIT
+        value: "30"
+      - key: EMBEDDING_THREADS
+        value: "1"
+      - key: FASTEMBED_CACHE_PATH
+        value: /tmp/eventops-models
+      - key: CALENDAR_FEED_URL
+        value: https://www.officeholidays.com/ics/south-africa
+      - key: WEB_SOURCE_URL
+        value: https://date.nager.at/api/v3/PublicHolidays/2026/ZA
+      - key: LANGSMITH_TRACING
+        value: "false"
+      - key: MAILTRAP_API_TOKEN
+        sync: false
+      - key: MAILTRAP_ACCOUNT_ID
+        sync: false
+      - key: MAILTRAP_INBOX_ID
+        sync: false
+  - type: web
+    name: eventops-intelligence
+    runtime: static
+    buildCommand: npm --prefix frontend ci && npm --prefix frontend run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

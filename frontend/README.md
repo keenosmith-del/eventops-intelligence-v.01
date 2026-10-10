@@ -1,0 +1,80 @@
+# EventOps Intelligence — React frontend
+
+React/Vite, React Router, native fetch and React Flow. Premium neutral workspace styling with responsive layouts, labeled controls, focus indicators and reduced-motion support. No Axios or browser-side provider keys.
+
+## Setup
+
+```bash
+cd frontend
+npm ci
+cp .env.example .env.local
+npm run dev
+```
+
+Open http://127.0.0.1:5173/signin. Requires the migrated/indexed backend on port 5050. Node 22.12+ or 24 is supported (verified with 24). See the root README for PostgreSQL and FastAPI setup.
+
+| Setting | Purpose |
+| --- | --- |
+| `VITE_API_BASE_URL` | Public backend origin, empty for same-origin local proxy |
+| `API_PROXY_TARGET` | Optional Vite server process override; default `http://127.0.0.1:5050`, not embedded as frontend configuration |
+
+Vite development/preview proxy `/api` and `/health`; static `dist` does not include that proxy. Static hosting needs `VITE_API_BASE_URL`, exact backend CORS and SPA rewrites. Do not place Gemini, Mailtrap or PostgreSQL credentials in VITE variables. Rebuild after changing a public API URL.
+
+## Views
+
+- `/signin`: branded **Continue as reviewer** entry; creates an anonymous demo session, not account authentication.
+- `/`, `/conversations/:uuid`: Knowledge Assistant with persisted questions/messages, recent history, UUID restore, optional Gemini, distinct evidence/answer presentation and right-side Evidence/Context tabs. Context is the actual query resolution; no general persistent-memory capability is invented.
+- `/agents`, `/agents/runs/:uuid`: actual run trigger, configured tool state, persisted node statuses, selectable inputs/outputs/timestamps/errors and verification results. A blueprint without a selected run claims no completion status.
+- `/verification`, `/verification/:uuid`: result table, filtering, duplicate/missing/conflict flags, provenance/reference detail and actual CSV export.
+- `/history`, `/history/:uuid`: recent persisted executions and restored graph/results.
+- `/sources`: indexed file counts, embedding state, content and original source references. Upload is not implemented because there is no ingestion endpoint.
+
+The sidebar collapses and mobile navigation scrolls horizontally. The graph pans/zooms and fits its container on resize; every stage also has a keyboard-accessible selection button. Tables scroll horizontally on narrow screens.
+
+## API behavior
+
+Conversation requests retain `question` (1–500 chars), `top_k` (1–20), `generate_answer`. The message endpoint returns only the new exchange. Generation statuses are rendered directly: `not_requested`, `generated`, `unavailable`, `insufficient_evidence`. Stored answers use citation pairs in `answer.evidence`, while retrieval messages contain full evidence. After refresh, historical unsuccessful generation status is unknown because the existing backend does not store it; the UI says so explicitly.
+
+Demo tokens are stored only in the current tab's session storage and sent in `X-Demo-Session`. A 401 returns the reviewer to entry. This is session isolation for a synthetic demonstration, not identity authentication. Public `DEMO_MODE=true` filters access by token; local mode can show prior shared synthetic records. Leaving/replacing the session does not restore its old owned records automatically.
+
+Tool connection `configured` is not a successful connection claim. Run step records establish completed/failed/skipped status. Mailtrap is explicitly not connected until configured. A partial run can have useful saved results while a tool is missing; positive fixture data is never substituted into that real run. Export returns a Blob from the actual CSV endpoint and triggers browser download. Verified-only export can be empty.
+
+Reads are aborted on route change. Fetch timeouts are 90 seconds, health 8 seconds and conversation list 15 seconds. Writes are never retried automatically. A timeout can occur after server-side work has started; reopen saved history before retrying. Agent detail polling stops on terminal state or unmount. Same-tab locks prevent duplicate clicks, while backend admission controls cover concurrent runs.
+
+## Tests
+
+```bash
+npm run build
+npm test
+npx playwright install chromium
+npm run test:e2e
+# Backend must be started with GEMINI_ENABLED=false:
+RUN_LIVE_API=true npm run test:e2e
+# Existing Google Chrome:
+PLAYWRIGHT_CHANNEL=chrome RUN_LIVE_API=true npm run test:e2e
+```
+
+For an isolated preview/backend:
+
+```bash
+npm run build
+API_PROXY_TARGET=http://127.0.0.1:5052 npm run preview
+TEST_BASE_URL=http://127.0.0.1:4173 PLAYWRIGHT_CHANNEL=chrome RUN_LIVE_API=true npm run test:e2e
+```
+
+Verified: build passed, **8 API client tests**, **13 browser tests** with live RAG and real Calendar/Web reads. Tests explicitly fixture generation states, email contracts, positive verification and error paths. Live browser regression checks generation is disabled before requesting its unavailable-state response. The real agent run leaves saved history and uses public HTTPS sources; Mailtrap is skipped. It produces actual screenshots and CSV in `docs/submission/`. No live Gemini request is made by these checks.
+
+## Structure
+
+- `src/App.jsx`: reviewer entry and shared shell/routes.
+- `src/api.js`: native-fetch client, demo header, timeouts and CSV.
+- `src/components/KnowledgeAssistant.jsx`: chat/history/evidence/context.
+- `src/components/Exchange.jsx`, `Evidence.jsx`: answers, citations and source panels.
+- `src/components/AgentWorkspace.jsx`: run polling, actual graph, node detail, results and exports.
+- `src/components/KnowledgeSources.jsx`: live indexed-source view.
+- `src/styles.css`, `workspace.css`: reusable base and view-specific responsive styling.
+- `tests/`: API behavior and browser journeys.
+
+## Media and deployment
+
+Actual evidence is in `docs/submission/screenshots/` and `sample-verification.csv`. Recordings directory is prepared but no recording exists. Public URL/recording placeholders remain in the root README. Follow [deployment instructions](../docs/deployment/README.md); hosted integration/cold-start/memory verification and activation of Mailtrap remain owner actions.

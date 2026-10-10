@@ -32,8 +32,9 @@ MESSAGE_COLUMNS = """
 class ConversationRepository:
     """Manage persistent RAG conversations and messages."""
 
-    def __init__(self, connection: psycopg.Connection):
+    def __init__(self, connection: psycopg.Connection, session_id: UUID | None = None):
         self.connection = connection
+        self.session_id = session_id
 
     def create_conversation(
         self,
@@ -61,6 +62,8 @@ class ConversationRepository:
             )
 
             row = cursor.fetchone()
+            if self.session_id:
+                cursor.execute("INSERT INTO demo_objects (object_id, session_id, kind) VALUES (%s, %s, 'conversation')", (row['id'], self.session_id))
 
         return Conversation.model_validate(row)
 
@@ -73,9 +76,11 @@ class ConversationRepository:
                 f"""
                 SELECT {CONVERSATION_COLUMNS}
                 FROM rag_conversations
-                WHERE id = %s
+                WHERE id = %s AND (%s::uuid IS NULL OR EXISTS (
+                    SELECT 1 FROM demo_objects WHERE object_id=rag_conversations.id AND session_id=%s
+                ))
                 """,
-                (conversation_id,),
+                (conversation_id, self.session_id, self.session_id),
             )
 
             row = cursor.fetchone()
@@ -97,10 +102,13 @@ class ConversationRepository:
                 f"""
                 SELECT {CONVERSATION_COLUMNS}
                 FROM rag_conversations
+                WHERE (%s::uuid IS NULL OR EXISTS (
+                    SELECT 1 FROM demo_objects WHERE object_id=rag_conversations.id AND session_id=%s
+                ))
                 ORDER BY updated_at DESC, id DESC
                 LIMIT %s
                 """,
-                (limit,),
+                (self.session_id, self.session_id, limit),
             )
 
             rows = cursor.fetchall()

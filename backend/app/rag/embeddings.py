@@ -1,9 +1,10 @@
-
+import os
 import numpy as np
 from fastembed import TextEmbedding
 
 # Default model for generating embeddings
 DEFAULT_MODEL = "BAAI/bge-small-en-v1.5"
+
 
 # adapter around FastEmbed's TextEmbedding to provide a consistent interface for generating embeddings.
 class LocalEmbeddingModel:
@@ -11,19 +12,20 @@ class LocalEmbeddingModel:
 
     def __init__(self, model_name: str = DEFAULT_MODEL):
         self.model_name = model_name
-        self._model = TextEmbedding(model_name=model_name)
+        self._model = TextEmbedding(
+            model_name=model_name,
+            cache_dir=os.getenv("FASTEMBED_CACHE_PATH"),
+            threads=int(os.getenv("EMBEDDING_THREADS", "1")),
+        )
 
     # Instead of allowing every module to call the model directly,
     # we provide a method to embed documents. This ensures that all embeddings are
     # generated in a consistent manner and allows for additional validation or preprocessing if needed.
     def embed_documents(self, texts: list[str]) -> np.ndarray:
         if not texts or any(
-            not isinstance(text, str) or not text.strip()
-            for text in texts
+            not isinstance(text, str) or not text.strip() for text in texts
         ):
-            raise ValueError(
-                "Documents must contain non-empty text"
-            )
+            raise ValueError("Documents must contain non-empty text")
 
         vectors = list(self._model.passage_embed(texts))
         return self._validate_vectors(
@@ -50,23 +52,13 @@ class LocalEmbeddingModel:
     ) -> np.ndarray:
         array = np.asarray(vectors, dtype=np.float32)
 
-        if (
-            array.ndim != 2
-            or array.shape[0] != expected_count
-            or array.shape[1] == 0
-        ):
-            raise ValueError(
-                "Embedding model returned invalid dimensions"
-            )
+        if array.ndim != 2 or array.shape[0] != expected_count or array.shape[1] == 0:
+            raise ValueError("Embedding model returned invalid dimensions")
 
         if not np.isfinite(array).all():
-            raise ValueError(
-                "Embedding model returned non-finite values"
-            )
+            raise ValueError("Embedding model returned non-finite values")
 
         if np.any(np.linalg.norm(array, axis=1) == 0):
-            raise ValueError(
-                "Embedding model returned zero vectors"
-            )
+            raise ValueError("Embedding model returned zero vectors")
 
         return array

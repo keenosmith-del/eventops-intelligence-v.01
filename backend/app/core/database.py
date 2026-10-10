@@ -21,6 +21,7 @@ def connect_db() -> psycopg.Connection:
         return psycopg.connect(
             database_url,
             connect_timeout=5,
+            **({"sslmode": os.environ["POSTGRES_SSLMODE"]} if os.getenv("POSTGRES_SSLMODE") else {}),
         )
 
     required = [
@@ -41,4 +42,5 @@ def connect_db() -> psycopg.Connection:
         user=os.environ["POSTGRES_USER"],
         password=os.environ["POSTGRES_PASSWORD"],
         connect_timeout=5,
+        sslmode=os.getenv("POSTGRES_SSLMODE", "prefer"),
     )

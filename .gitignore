@@ -49,3 +49,9 @@ logs/
 tmp/
 temp/
 *.tmp
+
+# Browser verification artifacts
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
+backend/.cache/
