@@ -118,3 +118,76 @@ from read-oriented semantic retrieval.
 
 Both components use the shared PostgreSQL connection
 infrastructure provided by app/core/database.py.
+
+## Conversation Repository
+
+Module: conversation_repository.py
+
+Persists RAG conversation sessions and messages
+using PostgreSQL.
+
+### Implemented Operations
+
+- Create conversations
+- Retrieve conversations by UUID
+- List recent conversations
+- Retrieve ordered message history
+- Persist question/retrieval message pairs
+- Preserve query plans and source evidence
+
+### Transaction Design
+
+The repository receives an existing PostgreSQL connection.
+
+It does not commit independently.
+
+The caller controls transaction boundaries.
+
+A retrieval exchange writes both the user question
+and retrieval result inside one database transaction.
+
+If the transaction rolls back, neither message persists.
+
+### Evidence Persistence
+
+Retrieval messages preserve:
+- The interpreted query plan
+- Retrieved source records
+- Record identifiers
+- Source references
+- Retrieval scores where supplied
+
+The retrieval summary is not an AI-generated answer.
+
+### Concurrency
+
+The repository locks the conversation row when
+appending an exchange.
+
+This coordinates concurrent message writes to the
+same conversation.
+
+### Current Limitations
+
+- Conversation history is stored but not yet used
+  for follow-up query interpretation.
+- No conversation ownership or access-control layer yet.
+- No public conversation endpoints yet.
+- No response streaming.
+- No generated-answer persistence workflow yet.
+- No production connection pooling.
+
+Do not publicly expose conversation access without
+implementing session verification and appropriate
+conversation access controls.
+
+### Testing
+
+Requires local PostgreSQL.
+
+Run:
+
+python -m pytest tests/test_conversation_repository.py -v
+
+Integration tests roll back temporary database
+changes after execution.

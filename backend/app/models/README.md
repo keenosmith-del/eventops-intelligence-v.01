@@ -105,3 +105,38 @@ Cross-document relationships and duplicate identifiers
 are checked in the ingestion module.
 
 See ../rag/README.md for the ingestion pipeline.
+
+## RAG Conversation Models
+
+Module: conversation.py
+
+### Conversation
+
+Represents a persistent conversation session.
+
+Fields:
+- UUID identifier
+- Optional title
+- Creation timestamp
+- Last-updated timestamp
+
+### ConversationMessage
+
+Represents a stored user question, retrieval result,
+or future generated answer.
+
+Fields:
+- Message identifier
+- Parent conversation UUID
+- Role and message kind
+- Content
+- Query plan
+- Retrieved evidence snapshots
+- Creation timestamp
+
+Message roles and kinds are validated using Pydantic.
+
+The application distinguishes retrieval evidence
+from generated answers.
+
+The database schema is defined in migration 002.
