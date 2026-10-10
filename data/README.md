@@ -98,7 +98,9 @@ The ingestion pipeline will:
 5. Create embeddings.
 6. Make records available for semantic retrieval.
 
-Ingestion and embedding generation are not yet implemented.
+Structured ingestion, validation, and record-based chunking are implemented in backend/app/rag/ingestion.py.
+
+Embedding generation and vector indexing are not yet implemented.
 
 ## Data Safety
 

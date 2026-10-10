@@ -87,3 +87,21 @@ services, persistence and integration layers.
 From the backend directory:
 
 python -m pytest tests/test_domain_models.py -v
+
+## Structured Source Schemas
+
+The structured.py module defines additional contracts
+for ingestion of authoritative documents.
+
+- Policy: a rule with global or event-specific scope
+- DirectoryParticipant: an authoritative identity record
+- ParticipantDirectory: the versioned JSON directory
+- ParticipantStatus: active or inactive
+
+These models validate source documents before the RAG
+pipeline converts them into KnowledgeRecord objects.
+
+Cross-document relationships and duplicate identifiers
+are checked in the ingestion module.
+
+See ../rag/README.md for the ingestion pipeline.
