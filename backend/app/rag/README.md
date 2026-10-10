@@ -493,3 +493,32 @@ no real Gemini API key or provider requests.
   claim-level grounding is not automatically proven
 - No server-wide request quota enforcement yet
 - No production session authentication
+
+## Conversation Generation Integration
+
+The Conversation API invokes the grounded-generation
+service only when generate_answer=true.
+
+Retrieval remains available independently of Gemini.
+
+Only the five highest-ranked evidence records may
+be submitted to the generation service.
+
+Generated answers are persisted as assistant messages
+with kind=answer.
+
+Source citations and generation model metadata are
+stored alongside each generated answer.
+
+The existing conversation context resolver continues
+to use retrieval messages even when generated-answer
+messages appear between conversation turns.
+
+No paid-model fallback is configured.
+
+Production use still requires:
+- Backend-validated user sessions
+- Conversation access controls
+- API request rate limiting
+- Provider usage monitoring
+- Claim-level answer evaluation

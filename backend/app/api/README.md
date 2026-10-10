@@ -219,3 +219,118 @@ retrieval; this requires further coordination.
 
 Conversation access controls are still required
 before public deployment.
+
+## Optional Grounded Answer Generation
+
+Endpoint:
+
+POST /api/conversations/{conversation_id}/messages
+
+The request supports:
+
+- question
+- top_k
+- generate_answer
+
+Generation defaults to false.
+
+### Generation Modes
+
+generate_answer=false:
+Retrieves and persists evidence only.
+
+generate_answer=true:
+Runs retrieval and requests a grounded answer
+from the optional generation service.
+
+Generation remains subject to GEMINI_ENABLED and
+GEMINI_API_KEY server configuration.
+
+### Response
+
+The response includes generation_status:
+
+- not_requested
+- generated
+- insufficient_evidence
+- unavailable
+
+Successful generation produces three messages:
+
+1. User question
+2. Assistant retrieval evidence
+3. Assistant generated answer with citations
+
+When generation is unavailable, the valid retrieval
+exchange is still persisted.
+
+### Source Verification
+
+The generation service validates source record IDs.
+
+The conversation repository independently verifies
+citation identifiers and source references against
+the preceding retrieval message.
+
+Unsupported generated citations are rejected.
+
+Citation matching does not independently prove
+claim-level factual correctness.
+
+### Transaction Design
+
+Generation occurs before the exchange is written
+to PostgreSQL.
+
+Question, retrieval and optional answer messages
+are written using the same database transaction.
+
+A failed generated answer does not require the
+retrieval result to be discarded.
+
+The current request dependency may hold a read
+transaction during generation.
+
+Concurrent conversation access and transaction
+lifetime management require further hardening.
+
+### Testing
+
+python -m pytest tests/test_conversation_api.py -v
+
+Generation is mocked in API tests.
+
+No live provider access is required.
+
+## Verified Generation-Disabled HTTP Workflow
+
+The optional generation endpoint has been tested
+with GEMINI_ENABLED=false.
+
+Test request:
+
+POST /api/conversations/{id}/messages
+
+{
+  "question": "What time does check-in close for EVT-101?",
+  "top_k": 3,
+  "generate_answer": true
+}
+
+Expected verified behaviour:
+
+- HTTP 200 response
+- generation_status=unavailable
+- Original user question persisted
+- Retrieval message persisted
+- POL-003 evidence returned
+- Original policy source reference preserved
+- No generated-answer message created
+- No Gemini provider request
+
+This demonstrates that retrieval and conversation
+persistence remain operational when generation is
+disabled or unavailable.
+
+Successful live Gemini generation has not yet
+been verified.

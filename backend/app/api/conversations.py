@@ -1,4 +1,4 @@
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import asdict
 from uuid import UUID
 
@@ -18,6 +18,14 @@ from app.rag.postgres_retrieval import PostgresSemanticRetriever
 from app.rag.query import interpret_query
 from app.services.conversation_repository import ConversationRepository
 
+from typing import Literal
+
+from app.rag.generation import (
+    GroundedAnswer,
+    MAX_EVIDENCE,
+    generate_grounded_answer,
+)
+
 router = APIRouter(
     prefix="/api/conversations",
     tags=["RAG Conversations"],
@@ -32,6 +40,10 @@ class CreateConversationRequest(DomainModel):
     )
 
 
+class ConversationQuestionRequest(RetrievalRequest):
+    generate_answer: bool = False
+
+
 class ConversationDetailResponse(DomainModel):
     conversation: Conversation
     messages: list[ConversationMessage]
@@ -41,10 +53,27 @@ class RetrievalExchangeResponse(DomainModel):
     conversation_id: UUID
     messages: list[ConversationMessage]
 
+    generation_status: Literal[
+        "not_requested",
+        "generated",
+        "insufficient_evidence",
+        "unavailable",
+    ] = "not_requested"
+
 
 def get_conversation_repository() -> Iterator[ConversationRepository]:
     with connect_db() as connection:
         yield ConversationRepository(connection)
+
+
+AnswerGenerator = Callable[
+    [str, list[dict]],
+    GroundedAnswer,
+]
+
+
+def get_answer_generator() -> AnswerGenerator:
+    return generate_grounded_answer
 
 
 @router.post(
@@ -106,9 +135,10 @@ def get_conversation(
 )
 def submit_question(
     conversation_id: UUID,
-    payload: RetrievalRequest,
+    payload: ConversationQuestionRequest,
     repository: ConversationRepository = Depends(get_conversation_repository),
     retriever: PostgresSemanticRetriever = Depends(get_rag_retriever),
+    answer_generator: AnswerGenerator = Depends(get_answer_generator),
 ) -> RetrievalExchangeResponse:
     conversation = repository.get_conversation(conversation_id)
 
@@ -118,18 +148,14 @@ def submit_question(
             detail="Conversation not found",
         )
 
-    # Retrieve the persisted history for this conversation.
     history = repository.list_messages(conversation_id)
 
     try:
-        # Resolve references such as "its" and "that event".
         resolved = resolve_conversation_question(
             question=payload.question,
             messages=history,
         )
 
-        # Interpret the resolved question using our
-        # existing deterministic query planner.
         plan = interpret_query(resolved.retrieval_question)
 
     except ValueError as exc:
@@ -138,6 +164,7 @@ def submit_question(
             detail=str(exc),
         ) from exc
 
+    # Retrieve real source evidence from PostgreSQL.
     hits = retriever.search(
         query=plan.query,
         top_k=payload.top_k,
@@ -161,8 +188,19 @@ def submit_question(
         for hit in hits
     ]
 
-    # Preserve both the interpreted query plan and
-    # the context-resolution decision.
+    # Generation is explicitly opt-in.
+    # Only the five highest-ranked records may
+    # be supplied to the generation provider.
+    generation_result: GroundedAnswer | None = None
+
+    if payload.generate_answer:
+        generation_result = answer_generator(
+            plan.query,
+            evidence[:MAX_EVIDENCE],
+        )
+
+    # Preserve original wording and the decision
+    # made during context resolution.
     query_plan = asdict(plan)
 
     query_plan["context_resolution"] = {
@@ -177,6 +215,34 @@ def submit_question(
             query_plan=query_plan,
             evidence=evidence,
         )
+
+        generation_status = "not_requested"
+
+        if generation_result is not None:
+            generation_status = generation_result.status
+
+            if generation_result.status == "generated":
+                citations = [
+                    citation.model_dump(mode="json")
+                    for citation in generation_result.citations
+                ]
+
+                try:
+                    answer_message = repository.append_generated_answer(
+                        conversation_id=conversation_id,
+                        answer=generation_result.answer,
+                        citations=citations,
+                        model=generation_result.model or "",
+                    )
+
+                except ValueError:
+                    # Reject invalid generated-answer data.
+                    # Preserve the valid retrieval exchange.
+                    generation_status = "unavailable"
+
+                else:
+                    messages.append(answer_message)
+
     except LookupError as exc:
         raise HTTPException(
             status_code=404,
@@ -186,4 +252,5 @@ def submit_question(
     return RetrievalExchangeResponse(
         conversation_id=conversation_id,
         messages=messages,
+        generation_status=generation_status,
     )
