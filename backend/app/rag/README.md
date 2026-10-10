@@ -327,3 +327,50 @@ authoritative knowledge base.
 - Query planning remains rule-based
 - Named-person resolution is not yet complete
 - Generated-answer grounding remains to be implemented
+
+## Deterministic Conversation Context
+
+Module: context.py
+
+Resolves explicit event references in follow-up
+questions using persistent conversation history.
+
+### Supported Behaviour
+
+- Preserves explicitly supplied event identifiers
+- Resolves clear references such as "its"
+- Supports "that event" and "the same event"
+- Uses the most recent retrieval response
+- Requires an unambiguous event identifier
+- Requires supporting retrieval evidence
+- Preserves the original user question
+- Produces an enriched retrieval question
+
+### Safety and Reliability
+
+The resolver does not invent event identifiers.
+
+If conversational context is missing or ambiguous,
+a context-dependent question raises ValueError.
+
+Context resolution is deterministic and uses
+no external language model.
+
+### Current Limitations
+
+The initial implementation only resolves selected
+event references.
+
+It does not yet support:
+- General pronoun and entity coreference
+- Multi-event comparisons
+- Person-name resolution
+- Complex multi-turn reasoning
+- LLM-assisted contextual interpretation
+
+### Testing
+
+python -m pytest tests/test_rag_context.py -v
+
+The module will be integrated into the Conversation
+API after its standalone tests have passed.
