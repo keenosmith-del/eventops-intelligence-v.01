@@ -7,3 +7,7 @@ pytest
 # Local semantic embedding engine
 fastembed
 numpy
+
+# PostgreSQL connectivity and environment configuration
+psycopg[binary]
+python-dotenv
