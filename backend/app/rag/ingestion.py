@@ -1,4 +1,3 @@
-
 import csv
 import hashlib
 import json
@@ -12,12 +11,7 @@ from app.models.structured import (
     Policy,
 )
 
-
-DEFAULT_DATA_DIR = (
-    Path(__file__).resolve().parents[3]
-    / "data"
-    / "structured"
-)
+DEFAULT_DATA_DIR = Path(__file__).resolve().parents[3] / "data" / "structured"
 
 
 def _read_csv(
@@ -32,8 +26,7 @@ def _read_csv(
 
         if reader.fieldnames != expected_columns:
             raise ValueError(
-                f"Unexpected CSV columns in {path.name}: "
-                f"{reader.fieldnames}"
+                f"Unexpected CSV columns in {path.name}: " f"{reader.fieldnames}"
             )
 
         rows = list(reader)
@@ -49,9 +42,7 @@ def _ensure_unique(
     description: str,
 ) -> None:
     if len(values) != len(set(values)):
-        raise ValueError(
-            f"Duplicate {description} detected"
-        )
+        raise ValueError(f"Duplicate {description} detected")
 
 
 def _source_fingerprint(model: BaseModel) -> str:
@@ -64,9 +55,7 @@ def _source_fingerprint(model: BaseModel) -> str:
         ensure_ascii=False,
     )
 
-    return hashlib.sha256(
-        canonical_json.encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
 
 
 def _create_record(
@@ -90,12 +79,8 @@ def _create_record(
         metadata={
             "record_type": record_type,
             "source_path": source_path,
-            "source_reference": (
-                f"{source_path}#{lookup_field}={record_id}"
-            ),
-            "source_sha256": _source_fingerprint(
-                source_model
-            ),
+            "source_reference": (f"{source_path}#{lookup_field}={record_id}"),
+            "source_sha256": _source_fingerprint(source_model),
         },
     )
 
@@ -104,11 +89,7 @@ def ingest_structured_documents(
     data_dir: Path | None = None,
 ) -> list[KnowledgeRecord]:
 
-    source_dir = (
-        Path(data_dir)
-        if data_dir is not None
-        else DEFAULT_DATA_DIR
-    )
+    source_dir = Path(data_dir) if data_dir is not None else DEFAULT_DATA_DIR
 
     event_rows = _read_csv(
         source_dir / "events.csv",
@@ -132,25 +113,15 @@ def ingest_structured_documents(
         ],
     )
 
-    events = [
-        Event.model_validate(row)
-        for row in event_rows
-    ]
+    events = [Event.model_validate(row) for row in event_rows]
 
-    policies = [
-        Policy.model_validate(row)
-        for row in policy_rows
-    ]
+    policies = [Policy.model_validate(row) for row in policy_rows]
 
     directory_data = json.loads(
-        (source_dir / "directory.json").read_text(
-            encoding="utf-8"
-        )
+        (source_dir / "directory.json").read_text(encoding="utf-8")
     )
 
-    directory = ParticipantDirectory.model_validate(
-        directory_data
-    )
+    directory = ParticipantDirectory.model_validate(directory_data)
 
     event_ids = {event.event_id for event in events}
 
@@ -165,26 +136,17 @@ def ingest_structured_documents(
     )
 
     _ensure_unique(
-        [
-            person.participant_id
-            for person in directory.participants
-        ],
+        [person.participant_id for person in directory.participants],
         "participant IDs",
     )
 
     _ensure_unique(
-        [
-            person.email.casefold()
-            for person in directory.participants
-        ],
+        [person.email.casefold() for person in directory.participants],
         "directory email addresses",
     )
 
     for policy in policies:
-        if (
-            policy.event_id != "ALL"
-            and policy.event_id not in event_ids
-        ):
+        if policy.event_id != "ALL" and policy.event_id not in event_ids:
             raise ValueError(
                 f"Policy {policy.policy_id} references "
                 f"unknown event {policy.event_id}"
@@ -196,9 +158,7 @@ def ingest_structured_documents(
             f"registered events for {person.participant_id}",
         )
 
-        unknown_events = (
-            set(person.registered_events) - event_ids
-        )
+        unknown_events = set(person.registered_events) - event_ids
 
         if unknown_events:
             raise ValueError(
@@ -233,11 +193,7 @@ def ingest_structured_documents(
 
     # Global and event-specific policies retain their scope.
     for policy in policies:
-        scope = (
-            "all events"
-            if policy.event_id == "ALL"
-            else f"event {policy.event_id}"
-        )
+        scope = "all events" if policy.event_id == "ALL" else f"event {policy.event_id}"
 
         content = (
             f"Policy {policy.policy_id}. "
@@ -246,27 +202,23 @@ def ingest_structured_documents(
             f"Rule: {policy.rule_text}"
         )
 
-        records.append(
-            _create_record(
-                filename="policies.csv",
-                record_id=policy.policy_id,
-                lookup_field="policy_id",
-                record_type="policy",
-                content=content,
-                source_model=policy,
-                event_id=(
-                    None
-                    if policy.event_id == "ALL"
-                    else policy.event_id
-                ),
-            )
+        policy_record = _create_record(
+            filename="policies.csv",
+            record_id=policy.policy_id,
+            lookup_field="policy_id",
+            record_type="policy",
+            content=content,
+            source_model=policy,
+            event_id=(None if policy.event_id == "ALL" else policy.event_id),
         )
+
+        policy_record.metadata["policy_category"] = policy.category
+
+        records.append(policy_record)
 
     # Each participant retains identity and event associations.
     for person in directory.participants:
-        registered_events = ", ".join(
-            person.registered_events
-        )
+        registered_events = ", ".join(person.registered_events)
 
         content = (
             f"Participant {person.participant_id}: "
@@ -286,9 +238,9 @@ def ingest_structured_documents(
             source_model=person,
         )
 
-        record.metadata["event_ids"] = (
-            ",".join(person.registered_events)
-        )
+        record.metadata["event_ids"] = ",".join(person.registered_events)
+
+        record.metadata["participant_status"] = person.status.value
 
         records.append(record)
 

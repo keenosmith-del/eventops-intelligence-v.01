@@ -3,6 +3,19 @@ from typing import Protocol
 
 import numpy as np
 
+POLICY_CATEGORIES = frozenset(
+    {
+        "identity",
+        "cancellation",
+        "check_in",
+        "eligibility",
+        "transfers",
+        "recording",
+        "registration",
+    }
+)
+
+
 from app.models.domain import KnowledgeRecord
 
 
@@ -89,11 +102,27 @@ class SemanticRetriever:
         record: KnowledgeRecord,
         record_type: str | None,
         event_id: str | None,
+        participant_status: str | None,
+        policy_category: str | None,
     ) -> bool:
         kind = record.metadata.get("record_type")
 
         if record_type is not None and kind != record_type:
             return False
+
+        if participant_status is not None:
+            if (
+                kind != "participant"
+                or record.metadata.get("participant_status") != participant_status
+            ):
+                return False
+
+        if policy_category is not None:
+            if (
+                kind != "policy"
+                or record.metadata.get("policy_category") != policy_category
+            ):
+                return False
 
         if event_id is None:
             return True
@@ -101,11 +130,9 @@ class SemanticRetriever:
         if record.event_id == event_id:
             return True
 
-        # Global policies also apply to the specified event.
         if kind == "policy" and record.event_id is None:
             return True
 
-        # Participants can be registered for multiple events.
         if kind == "participant":
             registered_events = record.metadata.get("event_ids", "").split(",")
 
@@ -119,7 +146,10 @@ class SemanticRetriever:
         top_k: int = 5,
         record_type: str | None = None,
         event_id: str | None = None,
+        participant_status: str | None = None,
+        policy_category: str | None = None,
     ) -> list[SearchHit]:
+
         if not isinstance(query, str) or not query.strip():
             raise ValueError("Search query cannot be empty")
 
@@ -132,6 +162,15 @@ class SemanticRetriever:
             "participant",
         }:
             raise ValueError("Unknown record type")
+
+        if participant_status is not None and participant_status not in {
+            "active",
+            "inactive",
+        }:
+            raise ValueError("Unknown participant status")
+
+        if policy_category is not None and policy_category not in POLICY_CATEGORIES:
+            raise ValueError("Unknown policy category")
 
         if event_id is not None:
             if not isinstance(event_id, str) or not event_id.strip():
@@ -149,6 +188,8 @@ class SemanticRetriever:
                 record,
                 record_type,
                 event_id,
+                participant_status,
+                policy_category,
             )
         ]
 

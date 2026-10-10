@@ -149,3 +149,47 @@ as sufficient evidence to answer a question.
 
 All current ingestion and retrieval operations run
 locally and incur no cloud API or inference charges.
+
+## Query Understanding
+
+Module: query.py
+
+The query interpreter converts supported natural-language
+questions into an explicit QueryPlan.
+
+Supported capabilities:
+- Extract event identifiers
+- Normalize event identifiers
+- Identify event, policy and participant questions
+- Detect active/inactive participant conditions
+- Detect selected policy categories
+- Reject unsupported multi-event comparisons
+- Preserve broad semantic retrieval when intent is unclear
+
+The retrieval engine supports deterministic filtering
+before similarity ranking.
+
+Source records retain their original evidence metadata.
+
+## Query Processing Limitations
+
+The query interpreter is rule-based and currently supports
+a defined set of operational question patterns.
+
+It does not yet provide general-purpose intent recognition.
+
+Unknown event identifiers produce no results.
+
+An empty result set is not a verified negative business
+finding; it means the current retrieval request found no
+eligible evidence.
+
+Semantic similarity alone is not sufficient to determine
+whether a generated answer is supported.
+
+Multi-document answer synthesis, confidence calibration
+and response abstention will be addressed separately.
+
+## Query Tests
+
+python -m pytest tests/test_rag_query.py -v
