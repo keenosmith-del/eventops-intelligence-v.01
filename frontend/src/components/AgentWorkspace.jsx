@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ReactFlow, Handle, Position, MarkerType } from "@xyflow/react";
 import { Check, Clock3, LoaderCircle, Minus, X } from "lucide-react";
 import "@xyflow/react/dist/style.css";
 import { api } from "../api.js";
 import { workspaceError } from "../workspace-errors.js";
+import { analysis, rawRecords, stageCount, terminal } from "../execution.js";
+import ExecutionReplay, { useExecutionReplay } from "./ExecutionReplay.jsx";
 
 const labels = {
   trigger: "Run trigger",
@@ -21,28 +23,36 @@ const labels = {
 };
 const order = Object.keys(labels);
 const coordinates = [
-  [0, 0],
   [240, 0],
-  [480, 0],
-  [480, 120],
-  [240, 120],
   [0, 120],
-  [0, 240],
+  [240, 120],
+  [480, 120],
   [240, 240],
   [480, 240],
   [480, 360],
   [240, 360],
+  [0, 360],
+  [0, 480],
+  [240, 480],
+];
+const links = [
+  ["trigger", "calendar"], ["trigger", "email"], ["trigger", "web"],
+  ["calendar", "extraction"], ["email", "extraction"], ["web", "extraction"],
+  ["extraction", "normalization"], ["normalization", "deduplication"],
+  ["deduplication", "verification"], ["verification", "discrepancy"],
+  ["discrepancy", "persistence"], ["persistence", "export"],
 ];
 function Stage({ data }) {
   const StateIcon = { pending: Clock3, running: LoaderCircle, completed: Check, failed: X, skipped: Minus }[data.status];
   return (
     <div className={`flow-stage ${data.status || "blueprint"}`}>
       <Handle type="target" position={Position.Top} />
-      <span className="eyebrow">
-        {StateIcon && <StateIcon size={12} strokeWidth={1.5} aria-hidden="true" />}
-        {data.status || "Workflow stage"}
-      </span>
+      {data.status && <span className="eyebrow">
+        {StateIcon && <StateIcon className={data.status === "running" ? "stage-running-icon" : ""} size={12} strokeWidth={1.5} aria-hidden="true" />}
+        {data.status.replaceAll("_", " ")}
+      </span>}
       <strong>{data.label}</strong>
+      {typeof data.count === "number" && <small>{data.count} {data.unit || "records"}</small>}
       <Handle type="source" position={Position.Bottom} />
     </div>
   );
@@ -81,8 +91,11 @@ export async function downloadResults(runId, verifiedOnly = false) {
 export function ResultTable({ run, onExport }) {
   const [filter, setFilter] = useState("all"),
     [selected, setSelected] = useState(null);
+  const [sourceFilter, setSourceFilter] = useState("all"), [issueFilter, setIssueFilter] = useState("all"), [eventFilter, setEventFilter] = useState("all");
+  useEffect(() => { setSelected(null); setFilter("all"); setSourceFilter("all"); setIssueFilter("all"); setEventFilter("all"); }, [run.id]);
   const records = run.results || [];
-  const rows = records.filter((r) => filter === "all" || (filter === "incomplete" ? incomplete(r) : r.status === filter));
+  const stats = analysis(records);
+  const rows = records.filter(r => (filter === "all" || (filter === "incomplete" ? incomplete(r) : r.status === filter)) && (sourceFilter === "all" || r.evidence.some(item => item.source_type === sourceFilter)) && (issueFilter === "all" || r.issues.includes(issueFilter)) && (eventFilter === "all" || r.event_id === eventFilter));
   const record = records.find((r) => r.id === selected);
   return (
     <section className="results-section">
@@ -98,9 +111,13 @@ export function ResultTable({ run, onExport }) {
             <option value="all">All records</option>
             <option value="verified">Verified</option>
             <option value="review_required">Flagged</option>
+            <option value="unverified">Unverified</option>
             <option value="incomplete">Missing details</option>
           </select>
         </label>
+        <label>Source <select value={sourceFilter} onChange={event => setSourceFilter(event.target.value)}><option value="all">All sources</option>{Object.keys(stats.sources).map(source => <option key={source}>{source}</option>)}</select></label>
+        <label>Event <select value={eventFilter} onChange={event => setEventFilter(event.target.value)}><option value="all">All events</option>{[...new Set(records.map(record => record.event_id))].map(event => <option key={event} value={event}>{event || "Missing event ID"}</option>)}</select></label>
+        <label>Discrepancy <select value={issueFilter} onChange={event => setIssueFilter(event.target.value)}><option value="all">All discrepancies</option>{Object.keys(stats.issues).map(issue => <option key={issue} value={issue}>{issue.replaceAll("_", " ")}</option>)}</select></label>
         {onExport && (
           <>
             <button onClick={() => onExport(false)}>Export all CSV</button>
@@ -108,8 +125,16 @@ export function ResultTable({ run, onExport }) {
           </>
         )}
       </div>
+      {terminal(run.status) && <section className="csv-analysis panel" aria-label="CSV analysis">
+        <h3>CSV analysis</h3><p>Counts from all saved result records; table filters do not change this analysis. A multi-source record contributes once to each source.</p>
+        <div className="analysis-columns">{[["Status distribution", stats.statuses], ["Source contribution", stats.sources], ["Discrepancy categories", stats.issues]].map(([title, values]) => <div key={title}><h4>{title}</h4><dl>{Object.entries(values).map(([label, count]) => <div key={label}><dt>{label.replaceAll("_", " ")}</dt><dd>{count}</dd></div>)}</dl>{!Object.keys(values).length && <p>None recorded</p>}</div>)}</div>
+        <p>{stats.missing} records with missing fields · {stats.conflicts} records with conflicts or reference mismatches</p>
+      </section>}
       <div className="metrics">
         {[
+          ["Retrieved (parsed)", stageCount(run.steps, "extraction") ?? "Not recorded"],
+          ["Extracted", stageCount(run.steps, "extraction") ?? "Not recorded"],
+          ["Normalized", stageCount(run.steps, "normalization") ?? "Not recorded"],
           ["Records", run.summary?.total ?? "Not recorded"],
           ["Verified", run.summary?.verified ?? "Not recorded"],
           ["Flagged", run.summary?.flagged ?? "Not recorded"],
@@ -192,6 +217,11 @@ export function ResultTable({ run, onExport }) {
             ["Title", record.title], ["Schedule", record.starts_at], ["Venue", record.venue],
             ["Duplicates", record.duplicate_count], ["Discrepancies", record.issues.join(", ")],
           ].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value === 0 ? "0" : value || "Not provided"}</dd></div>)}</dl>
+          <h3>Raw extracted values</h3>
+          {rawRecords(run, record).length ? rawRecords(run, record).map((raw, index) => <div className="observed-evidence" key={index}><p>{raw.source_type} / {raw.source_record_id}</p><dl className="normalized-fields">{["event_id", "email", "full_name", "title", "starts_at", "venue"].map(field => <div key={field}><dt>{field.replaceAll("_", " ")}</dt><dd>{raw[field] || "Not provided"}</dd></div>)}</dl></div>) : <p>Raw extraction values were not saved for this record.</p>}
+          <h3>Field-level verification decisions</h3>
+          {record.checks?.length ? <div className="table-scroll"><table><thead><tr><th>Rule / field</th><th>Actual value</th><th>Reference / required value</th><th>Decision</th></tr></thead><tbody>{record.checks.map((check, index) => <tr key={index}><td>{check.rule.replaceAll("_", " ")}<small>{check.field}</small></td><td>{Array.isArray(check.actual) ? check.actual.join(", ") : String(check.actual ?? "Not provided") || "Not provided"}</td><td>{Array.isArray(check.reference) ? check.reference.join(", ") : String(check.reference ?? "No reference found")}</td><td>{check.status}</td></tr>)}</tbody></table></div> : <p>This older run saved issue codes and reference evidence, but no field-level checks.</p>}
+          <p>{record.status === "verified" ? "Authoritative references matched and no discrepancy was recorded." : `Review is required: ${record.issues.map(issue => issue.replaceAll("_", " ")).join(", ") || "the saved classification requires review"}. Missing or unmatched information is not verified.`}</p>
           <h3>Observed evidence</h3>
           {record.evidence.map((item, i) => (
             <div className="observed-evidence" key={i}>
@@ -208,6 +238,7 @@ export function ResultTable({ run, onExport }) {
               <div className="observed-evidence" key={item.record_id}>
                 <strong>{item.record_id}</strong>
                 <p>{item.content}</p>
+                {item.fields && <ExecutionData value={item.fields} />}
                 <code>{item.source_reference}</code>
               </div>
             ))
@@ -230,6 +261,16 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
     [eventId, setEventId] = useState("EVT-101"),
     [limit, setLimit] = useState(20),
     [selected, setSelected] = useState("trigger");
+  const [manualSelection, setManualSelection] = useState(false);
+  const replay = useExecutionReplay(run);
+  const visibleSteps = replay.steps;
+  const activeStep = visibleSteps.find(step => step.status === "running");
+  const latestStep = [...visibleSteps].filter(step => step.finished_at).sort((first, second) => Date.parse(second.finished_at) - Date.parse(first.finished_at))[0];
+  useEffect(() => { setManualSelection(false); setSelected("trigger"); }, [runId]);
+  useEffect(() => {
+    if (!manualSelection && (activeStep || latestStep)) setSelected((activeStep || latestStep).node_id);
+  }, [manualSelection, activeStep?.node_id, latestStep?.node_id]);
+  function selectStage(id) { setManualSelection(true); setSelected(id); }
   const lock = useRef(false),
     flowSurface = useRef(null);
   const [flow, setFlow] = useState(null);
@@ -269,7 +310,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
           if (c.signal.aborted) return;
           setRun(result);
           if (["pending", "running"].includes(result.status))
-            timer = setTimeout(poll, 1500);
+            timer = setTimeout(poll, 350);
         } catch (err) {
           if (!c.signal.aborted) setError(workspaceError(err));
         }
@@ -312,26 +353,28 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       setBusy(false);
     }
   }
-  const step = run?.steps?.find((item) => item.node_id === selected);
+  const step = visibleSteps.find(item => item.node_id === selected);
   const nodes = useMemo(() => order.map((key, i) => ({
     id: key,
     type: "stage",
     position: { x: coordinates[i][0], y: coordinates[i][1] },
     data: {
       label: labels[key],
-      status: run?.steps?.find((s) => s.node_id === key)?.status,
+      status: run ? visibleSteps.find(s => s.node_id === key)?.status : undefined,
+      count: visibleSteps.find(s => s.node_id === key)?.outputs?.record_count ?? (key === "email" ? visibleSteps.find(s => s.node_id === key)?.outputs?.messages_read : visibleSteps.find(s => s.node_id === "extraction")?.outputs?.source_counts?.[key]),
+      unit: key === "email" ? "messages read" : "records",
     },
-  })), [run?.steps]);
-  const edges = useMemo(() => order
-    .slice(1)
-    .map((key, i) => ({
-      id: `${order[i]}-${key}`,
-      source: order[i],
-      target: key,
+  })), [run?.id, visibleSteps]);
+  const edges = useMemo(() => links
+    .map(([source, target]) => ({
+      id: `${source}-${target}`,
+      source,
+      target,
+      animated: visibleSteps.some(step => step.node_id === target && step.status === "running"),
       type: "smoothstep",
       markerEnd: { type: MarkerType.ArrowClosed, color: "#abb1a2" },
       style: { stroke: "#abb1a2", strokeWidth: 1 },
-    })), []);
+    })), [visibleSteps]);
   const title =
     view === "results"
       ? "Verification results"
@@ -361,9 +404,9 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
               <div className="panel" key={tool.id}>
                 <p className="eyebrow">{tool.label}</p>
                 <span
-                  className={`status-tag ${run?.summary?.tools?.[tool.id] || tool.status}`}
+                  className={`status-tag ${run?.steps?.find(step => step.node_id === tool.id)?.status || tool.status}`}
                 >
-                  {run?.summary?.tools?.[tool.id] ||
+                  {run?.steps?.find(step => step.node_id === tool.id)?.status ||
                     tool.status.replace("_", " ")}
                 </span>
                 <p>{tool.id === "email" ? tool.status === "configured" ? "Read-only sandbox access is configured. Connectivity is checked during a run." : "Connect a Mailtrap sandbox in server settings to read test messages." : tool.note}</p>
@@ -414,6 +457,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
           </form>
         </>
       )}
+      {runId && !run && !error && <p role="status">Loading saved execution…</p>}
       {(!runId || view === "history" || view === "results") && (
         <section className="panel execution-list">
           <div className="result-toolbar">
@@ -464,12 +508,17 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
           <div className="result-toolbar">
             <h2>{run ? `Execution · ${run.status}` : "Workflow blueprint"}</h2>
             {run && <code>{run.id}</code>}
+            {run && terminal(run.status) && <ExecutionReplay replay={replay} />}
           </div>
           <p className="fine-print">
             {run
-              ? "Each node reflects its persisted backend step. Tool reads are executed sequentially; failures or missing connections are retained. Export completes only after a CSV is downloaded."
+              ? "Branches show source data converging into extraction. Tool reads execute sequentially; node states come from PostgreSQL. Replay reconstructs recorded timestamps without calling tools."
               : "No execution selected. These labels describe the configured workflow, not completed actions."}
           </p>
+          {run && <section className="execution-progress" aria-label={replay.active ? "Recorded progress" : "Execution progress"}>
+            <p role="status">{replay.active ? "Recorded replay" : terminal(run.status) ? `Saved outcome: ${run.status}` : "Live execution"}{activeStep ? ` · ${labels[activeStep.node_id]} is running` : ""} · {visibleSteps.filter(step => step.node_id !== "export" && ["completed", "failed", "skipped"].includes(step.status)).length} of 10 workflow stages settled</p>
+            <dl>{[["Read (parsed)", stageCount(visibleSteps, "extraction")], ["Extracted", stageCount(visibleSteps, "extraction")], ["Normalized", stageCount(visibleSteps, "normalization")], ["After deduplication", stageCount(visibleSteps, "deduplication")], ["Verified", visibleSteps.find(step => step.node_id === "verification")?.outputs?.verified], ["Flagged", visibleSteps.find(step => step.node_id === "verification")?.outputs?.flagged]].map(([label, count]) => <div key={label}><dt>{label}</dt><dd>{count ?? "Not recorded"}</dd></div>)}</dl>
+          </section>}
           <div className="workflow-columns">
             <div className="workflow-canvas panel">
               <div className="flow-surface" ref={flowSurface}>
@@ -478,7 +527,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
                   nodes={nodes}
                   edges={edges}
                   nodeTypes={nodeTypes}
-                  onNodeClick={(_, node) => setSelected(node.id)}
+                  onNodeClick={(_, node) => selectStage(node.id)}
                   fitView
                   nodesDraggable={false}
                   nodesConnectable={false}
@@ -493,11 +542,11 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
                 aria-label="Select execution step"
               >
                 {order.map((key) => (
-                  <button key={key} aria-pressed={selected === key} onClick={() => setSelected(key)}>
+                  <button key={key} aria-pressed={selected === key} onClick={() => selectStage(key)}>
                     {labels[key]}
                     {run
                       ? " · " +
-                        (run.steps.find((s) => s.node_id === key)?.status ||
+                        (visibleSteps.find((s) => s.node_id === key)?.status ||
                           "unknown")
                       : ""}
                   </button>
@@ -506,6 +555,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
             </div>
             <aside className="panel step-detail">
               <p className="eyebrow">Selected stage</p>
+              {run && <button className="follow-progress" aria-pressed={!manualSelection} onClick={() => setManualSelection(false)}>Follow progress</button>}
               <h2>{labels[selected]}</h2>
               {step ? (
                 <>
@@ -546,6 +596,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       )}
       {run && (
         <>
+          <nav className="execution-links" aria-label="Saved execution views"><Link to={`/verification/${run.id}`}>Open saved results</Link><Link to={`/history/${run.id}`}>Open execution history</Link><Link to={`/agents/runs/${run.id}`}>Open execution graph</Link></nav>
           <p className="fine-print">
             Created {new Date(run.created_at).toLocaleString()}
             {run.finished_at

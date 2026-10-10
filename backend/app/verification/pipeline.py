@@ -268,65 +268,74 @@ def verify(
     for candidate in records:
         record = deepcopy(candidate)
         issues = record["issues"]
-        matches = []
+        matches, checks = [], []
+
+        def check(rule, field, actual, expected, passed, issue=None):
+            checks.append({
+                "rule": rule, "field": field, "actual": actual,
+                "reference": expected, "status": "passed" if passed else "failed",
+            })
+            if not passed and issue:
+                issues.append(issue)
+
+        for issue in list(issues):
+            checks.append({"rule": issue, "field": "source", "actual": issue,
+                           "reference": None, "status": "failed"})
         event = events.get(record["event_id"])
-        if not record["event_id"]:
-            issues.append("missing_event_id")
-        elif not event:
-            issues.append("unknown_event_id")
-        elif record["event_id"] != target_event:
-            issues.append("different_target_event")
+        check("event_reference", "event_id", record["event_id"],
+              event["record_id"] if event else None, bool(event),
+              "missing_event_id" if not record["event_id"] else "unknown_event_id")
         if event:
+            check("target_event", "event_id", record["event_id"], target_event,
+                  record["event_id"] == target_event, "different_target_event")
             fields = reference_fields(event)
-            matches.append(
-                {
-                    "record_id": event["record_id"],
-                    "source_reference": event["metadata"]["source_reference"],
-                    "content": event["content"],
-                }
-            )
+            matches.append({
+                "record_id": event["record_id"],
+                "source_reference": event["metadata"]["source_reference"],
+                "content": event["content"], "fields": fields,
+            })
             if record["email"]:
                 person = people.get(record["email"])
-                if not person:
-                    issues.append("participant_not_in_directory")
-                else:
+                check("directory_identity", "email", record["email"],
+                      reference_fields(person)["email"] if person else None,
+                      bool(person), "participant_not_in_directory")
+                if person:
                     pf = reference_fields(person)
-                    matches.append(
-                        {
-                            "record_id": person["record_id"],
-                            "source_reference": person["metadata"]["source_reference"],
-                            "content": person["content"],
-                        }
-                    )
-                    if pf["status"] != "active":
-                        issues.append("inactive_participant")
-                    if record["event_id"] not in pf["event_ids"]:
-                        issues.append("not_registered_for_event")
-                    if not record["full_name"]:
-                        issues.append("missing_full_name")
-                    elif record["full_name"].casefold() != pf["full_name"].casefold():
-                        issues.append("name_mismatch")
+                    matches.append({
+                        "record_id": person["record_id"],
+                        "source_reference": person["metadata"]["source_reference"],
+                        "content": person["content"], "fields": pf,
+                    })
+                    check("active_participant", "status", pf["status"], "active",
+                          pf["status"] == "active", "inactive_participant")
+                    check("event_registration", "event_id", record["event_id"],
+                          pf["event_ids"], record["event_id"] in pf["event_ids"],
+                          "not_registered_for_event")
+                    check("participant_name", "full_name", record["full_name"],
+                          pf["full_name"], bool(record["full_name"]) and
+                          record["full_name"].casefold() == pf["full_name"].casefold(),
+                          "missing_full_name" if not record["full_name"] else "name_mismatch")
             else:
                 if record["source_type"] == "email":
-                    issues.append("missing_email")
+                    check("email_required", "email", "", None, False, "missing_email")
                 for field in ["title", "starts_at", "venue"]:
                     if not record[field]:
-                        issues.append(f"missing_{field}")
+                        check("event_" + field, field, record[field], fields[field],
+                              False, "missing_" + field)
                     elif field == "starts_at":
                         try:
-                            if datetime.fromisoformat(
-                                record[field]
-                            ) != datetime.fromisoformat(fields[field]):
-                                issues.append("schedule_mismatch")
+                            passed = datetime.fromisoformat(record[field]) == datetime.fromisoformat(fields[field])
+                            issue = "schedule_mismatch"
                         except ValueError:
-                            issues.append("invalid_timestamp")
-                    elif record[field].casefold() != fields[field].casefold():
-                        issues.append(f"{field}_mismatch")
+                            passed, issue = False, "invalid_timestamp"
+                        check("event_schedule", field, record[field], fields[field], passed, issue)
+                    else:
+                        check("event_" + field, field, record[field], fields[field],
+                              record[field].casefold() == fields[field].casefold(), field + "_mismatch")
         record["issues"] = sorted(set(issues))
         record["matches"] = matches
-        record["status"] = (
-            "verified" if matches and not record["issues"] else "review_required"
-        )
+        record["checks"] = checks
+        record["status"] = "verified" if matches and not record["issues"] else "review_required"
         results.append(record)
     return results
 

@@ -1,0 +1,247 @@
+{
+  "name": "EventOps protected verification (configure credentials before activation)",
+  "active": false,
+  "nodes": [
+    {
+      "id": "protected-trigger",
+      "name": "Protected trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "eventops-verification",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "EventOps webhook caller key (configure)"
+        }
+      }
+    },
+    {
+      "id": "start-verification",
+      "name": "Start verification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:5050/api/integrations/n8n/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "EventOps backend service key (configure)"
+        }
+      }
+    },
+    {
+      "id": "wait-before-status",
+      "name": "Wait before status",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 2,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "read-saved-execution",
+      "name": "Read saved execution",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        0
+      ],
+      "parameters": {
+        "url": "={{ 'http://host.docker.internal:5050/api/integrations/n8n/runs/' + $('Start verification').first().json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "EventOps backend service key (configure)"
+        }
+      }
+    },
+    {
+      "id": "bound-polling",
+      "name": "Bound polling",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const run = $input.first().json;\nif (!['pending','running','completed','partial','failed'].includes(run.status)) throw new Error('Unexpected backend execution status.');\nif (run.id !== $('Start verification').first().json.id) throw new Error('Execution ID mismatch.');\nif (['pending','running'].includes(run.status) && $runIndex >= 29) throw new Error('Polling bound reached. Reopen the saved execution; do not resubmit with a new delivery key.');\nreturn [{ json: run }];"
+      }
+    },
+    {
+      "id": "execution-finished",
+      "name": "Execution finished",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "not-pending",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "pending",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
+            {
+              "id": "not-running",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "running",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "report-actual-outcome",
+      "name": "Report actual outcome",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1440,
+        -100
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.status === 'failed' ? 502 : 200 }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Protected trigger": {
+      "main": [
+        [
+          {
+            "node": "Start verification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start verification": {
+      "main": [
+        [
+          {
+            "node": "Wait before status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait before status": {
+      "main": [
+        [
+          {
+            "node": "Read saved execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read saved execution": {
+      "main": [
+        [
+          {
+            "node": "Bound polling",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bound polling": {
+      "main": [
+        [
+          {
+            "node": "Execution finished",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execution finished": {
+      "main": [
+        [
+          {
+            "node": "Report actual outcome",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait before status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "executionTimeout": 180,
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none"
+  },
+  "pinData": {}
+}

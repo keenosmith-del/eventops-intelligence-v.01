@@ -229,3 +229,34 @@
   .app-shell .is-thinking::before { animation: none; }
   .app-shell .sidebar { transition: none; }
 }
+/* Part 2: execution state and saved-record analysis; entry/chat styles are preserved. */
+.app-shell .flow-stage.running { outline: 1px solid #89958a; background: #e5e9df; }
+.app-shell .flow-stage.pending { color: #72776e; background: #f6f6f0; }
+.app-shell .flow-stage.skipped { background: #ecebe5; }
+.app-shell .flow-stage small { display: block; margin-top: 5px; font-size: 10px; color: var(--ws-muted); }
+.app-shell .stage-running-icon { animation: workspace-spin 2s linear infinite; }
+.app-shell .execution-progress { padding: 16px 0 22px; }
+.app-shell .execution-progress p { font-size: 13px; margin-bottom: 14px; }
+.app-shell .execution-progress dl { display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 0; }
+.app-shell .execution-progress dt { font-size: 11px; color: var(--ws-muted); }
+.app-shell .execution-progress dd { margin: 5px 0 0; }
+.app-shell .execution-replay { flex-basis: 100%; padding: 14px 18px; border-radius: 20px; background: #eeece5; }
+.app-shell .execution-replay p { font-size: 12px; margin-bottom: 12px; }
+.app-shell .replay-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 11px; }
+.app-shell .replay-controls button, .app-shell .follow-progress { padding: 7px 12px; font-size: 11px; }
+.app-shell .replay-controls select { margin-left: 5px; }
+.app-shell .replay-seek { display: flex; align-items: center; gap: 8px; }
+.app-shell .replay-seek input { width: 140px; padding: 0; accent-color: #64735e; }
+.app-shell .execution-links { display: flex; flex-wrap: wrap; gap: 14px; margin: 22px 0; font-size: 12px; }
+.app-shell .csv-analysis { padding: 22px; margin: 22px 0; }
+.app-shell .csv-analysis h3 { font-size: 17px; font-weight: 400; margin: 0 0 10px; }
+.app-shell .csv-analysis p { font-size: 11px; }
+.app-shell .analysis-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.app-shell .analysis-columns h4 { font-size: 12px; font-weight: 400; }
+.app-shell .analysis-columns dl > div { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 8px; }
+.app-shell .analysis-columns dt { overflow-wrap: anywhere; }
+.app-shell .analysis-columns dd { margin: 0; }
+@media (max-width: 760px) { .app-shell .analysis-columns { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .stage-running-icon, .app-shell .react-flow__edge.animated path { animation: none; }
+}

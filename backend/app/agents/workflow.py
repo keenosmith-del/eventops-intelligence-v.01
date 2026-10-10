@@ -89,11 +89,19 @@ def graph_for(*, adapters=None):
             )
             result = fn(state)
             items = result.get("records", result.get("results", []))
+            outputs = {"record_count": len(items), "records": items}
+            if name == "extraction":
+                outputs["source_counts"] = {
+                    source: sum(r["source_type"] == source for r in items)
+                    for source in state["sources"]
+                }
+            if name == "verification":
+                outputs.update(pipeline.summary(items))
             store.step(
                 state["run_id"],
                 name,
                 "completed",
-                outputs={"record_count": len(items), "records": items},
+                outputs=outputs,
             )
             return result
 
@@ -168,12 +176,7 @@ def graph_for(*, adapters=None):
             results=state["results"],
             summary={**pipeline.summary(state["results"]), "tools": outcomes},
             error="No tool source was available." if status == "failed" else None,
-        )
-        store.step(
-            state["run_id"],
-            "persistence",
-            "completed",
-            outputs={"storage": "PostgreSQL", "record_count": len(state["results"])},
+            persistence_outputs={"storage": "PostgreSQL", "record_count": len(state["results"])},
         )
         return {}
 

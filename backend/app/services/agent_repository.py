@@ -20,33 +20,35 @@ NODES = [
 ]
 
 
+def insert_run(cursor, event_id, max_records, owner=None):
+    """Shared transactional admission for reviewer and service triggers."""
+    cursor.execute("SELECT pg_advisory_xact_lock(3902101)")
+    cursor.execute(
+        "SELECT COUNT(*) AS count FROM agent_runs WHERE status IN ('pending','running') AND created_at > NOW() - INTERVAL '10 minutes'"
+    )
+    if cursor.fetchone()["count"] >= 2:
+        raise RuntimeError("Two verification runs are already active. Wait for a run to finish.")
+    cursor.execute(
+        "INSERT INTO agent_runs (event_id,max_records) VALUES (%s,%s) RETURNING *",
+        (event_id, max_records),
+    )
+    row = cursor.fetchone()
+    for index, node in enumerate(NODES):
+        cursor.execute(
+            "INSERT INTO agent_steps (run_id,node_id,position) VALUES (%s,%s,%s)",
+            (row["id"], node, index),
+        )
+    if owner:
+        cursor.execute(
+            "INSERT INTO demo_objects (object_id,session_id,kind) VALUES (%s,%s,'run')",
+            (row["id"], owner),
+        )
+    return row
+
+
 def create_run(event_id: str, max_records: int, owner: UUID | None = None) -> dict:
     with connect_db() as connection, connection.cursor(row_factory=dict_row) as cursor:
-        # Serialize admission across processes, without holding a lock during tool calls.
-        cursor.execute("SELECT pg_advisory_xact_lock(3902101)")
-        cursor.execute(
-            "SELECT COUNT(*) AS count FROM agent_runs WHERE status IN ('pending','running') AND created_at > NOW() - INTERVAL '10 minutes'"
-        )
-        if cursor.fetchone()["count"] >= 2:
-            raise RuntimeError(
-                "Two verification runs are already active. Wait for a run to finish."
-            )
-        cursor.execute(
-            "INSERT INTO agent_runs (event_id,max_records) VALUES (%s,%s) RETURNING *",
-            (event_id, max_records),
-        )
-        row = cursor.fetchone()
-        for index, node in enumerate(NODES):
-            cursor.execute(
-                "INSERT INTO agent_steps (run_id,node_id,position) VALUES (%s,%s,%s)",
-                (row["id"], node, index),
-            )
-        if owner:
-            cursor.execute(
-                "INSERT INTO demo_objects (object_id,session_id,kind) VALUES (%s,%s,'run')",
-                (row["id"], owner),
-            )
-    return row
+        return insert_run(cursor, event_id, max_records, owner)
 
 
 def expire_stale():
@@ -109,7 +111,7 @@ def step(run_id, node, status, *, inputs=None, outputs=None, error=None):
         )
 
 
-def set_run(run_id, status, *, results=None, summary=None, error=None):
+def set_run(run_id, status, *, results=None, summary=None, error=None, persistence_outputs=None):
     with connect_db() as connection, connection.cursor() as cursor:
         cursor.execute(
             """UPDATE agent_runs SET status=%s, results=COALESCE(%s,results), summary=COALESCE(%s,summary), error=%s,
@@ -123,6 +125,11 @@ def set_run(run_id, status, *, results=None, summary=None, error=None):
                 run_id,
             ),
         )
+        if persistence_outputs is not None:
+            cursor.execute(
+                "UPDATE agent_steps SET status='completed', finished_at=NOW(), outputs=%s WHERE run_id=%s AND node_id='persistence'",
+                (Jsonb(persistence_outputs), run_id),
+            )
 
 
 def reference_records() -> list[dict]:

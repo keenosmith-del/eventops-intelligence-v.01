@@ -13,6 +13,8 @@ load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
 from app.api.agents import router as agents_router
 from app.api.conversations import router as conversations_router
 from app.api.knowledge import router as knowledge_router
+from app.api.n8n import require_service
+from app.api.n8n import router as n8n_router
 from app.api.rag import router as rag_router
 from app.core.demo import (
     consume_budget,
@@ -34,6 +36,7 @@ for router in [
     agents_router,
     knowledge_router,
     demo_router,
+    n8n_router,
 ]:
     app.include_router(router)
 
@@ -49,7 +52,10 @@ async def public_demo_guard(request: Request, call_next):
                 raise HTTPException(413, "Request exceeds the 16 KB limit.")
             if len(await request.body()) > 16000:
                 raise HTTPException(413, "Request exceeds the 16 KB limit.")
-        if demo_enabled() and request.url.path != "/api/demo/session":
+        service_request = request.url.path.startswith("/api/integrations/n8n/")
+        if service_request:
+            await run_in_threadpool(require_service, request)
+        if not service_request and demo_enabled() and request.url.path != "/api/demo/session":
             owner = await run_in_threadpool(
                 identify_session, request.headers.get("x-demo-session")
             )
