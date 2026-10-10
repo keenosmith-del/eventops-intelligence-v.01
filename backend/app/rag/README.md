@@ -397,3 +397,99 @@ Integration tests verify:
 
 Context resolution runs before local query embedding
 and pgvector similarity search.
+
+## Grounded Answer Generation
+
+Module: generation.py
+
+Provides an optional Gemini generation layer over
+retrieved RAG evidence.
+
+### Model
+
+gemini-3.5-flash-lite
+
+The model is fixed in application code.
+
+### Safety and Cost Controls
+
+- Disabled by default
+- Requires GEMINI_ENABLED=true
+- Requires a server-side GEMINI_API_KEY
+- Maximum one provider request per operation
+- No automatic retries
+- No paid fallback model
+- Maximum five evidence records
+- Maximum 800 characters per evidence record
+- Maximum 500 characters per question
+- Maximum 512 output tokens
+- No Google Search or other provider tools
+
+The model is not called when retrieved evidence
+is empty.
+
+### Grounding
+
+The service asks Gemini to answer only from
+retrieved evidence.
+
+Returned citation identifiers are validated
+against the supplied evidence records.
+
+The backend constructs final source references
+rather than accepting model-invented references.
+
+Unsupported citation identifiers are rejected.
+
+The model may abstain when evidence is insufficient.
+
+Citation-identifier validation does not itself
+prove the factual correctness of generated text.
+
+### Response States
+
+generated:
+A generated answer with source citations.
+
+insufficient_evidence:
+The available sources cannot support an answer.
+
+unavailable:
+Generation is disabled, misconfigured, or failed.
+
+### Free-Tier Requirements
+
+Use a dedicated Gemini API project verified as
+Free Tier in Google AI Studio.
+
+Do not attach a billing account to this project.
+
+An API key inherits its project's billing status.
+
+Application-level request bounds cannot guarantee
+zero charges if a paid-tier key is configured.
+
+### Privacy
+
+Free-tier Gemini usage may be used by the provider
+to improve its products.
+
+Do not send sensitive customer records, private
+Gmail content or confidential operational data
+through this demonstration integration.
+
+### Testing
+
+python -m pytest tests/test_rag_generation.py -v
+
+Tests use mocked HTTP transport and require
+no real Gemini API key or provider requests.
+
+### Current Limitations
+
+- Generation is not yet exposed through FastAPI
+- Generated answers are not yet persisted
+- Citation identifiers are validated, but complete
+  claim-level grounding is not automatically proven
+- No server-wide request quota enforcement yet
+- No production session authentication
