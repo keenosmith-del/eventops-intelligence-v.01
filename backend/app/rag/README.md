@@ -2,141 +2,150 @@
 
 ## Purpose
 
-This module implements structured knowledge ingestion
-and will progressively introduce semantic retrieval,
-embeddings and grounded generation.
+This module implements the structured knowledge ingestion
+and retrieval components of EventOps Intelligence.
 
-The RAG system supports questions about events,
+The knowledge base supports questions about events,
 operational policies and participant reference data.
 
-## Current Implementation
+## Implemented Components
 
-Implemented:
+### ingestion.py
 
-- CSV ingestion
-- JSON ingestion
+- CSV and JSON parsing
 - Pydantic schema validation
 - Cross-document reference validation
 - Duplicate identifier detection
-- Structure-aware record chunking
+- Structure-aware knowledge chunking
 - Source provenance metadata
 - Deterministic source fingerprints
-- Automated ingestion tests
 
-Not yet implemented:
+Entry point:
 
-- Embedding generation
-- Vector storage
-- Semantic similarity retrieval
-- Query transformation
-- Gemini answer generation
-- Source citation rendering
-- Conversation persistence
+ingest_structured_documents(data_dir=None)
+
+### embeddings.py
+
+- Local FastEmbed inference
+- BAAI/bge-small-en-v1.5 model
+- Document embedding generation
+- Query embedding generation
+- Vector shape and numerical validation
+
+Each embedding has 384 dimensions.
+
+The model runs locally without a paid inference API.
+
+### retrieval.py
+
+- In-memory document vector index
+- Cosine similarity ranking
+- Record-type filtering
+- Event-specific filtering
+- Global policy inclusion
+- Participant/event association filtering
+- Source provenance preservation
+- Deterministic ranking order for equal scores
+- Authoritative event existence validation
+- Unknown event filters return no records
+- Global policies apply only to known events
+
+Main class:
+
+SemanticRetriever
+
+Main method:
+
+search(query, top_k=5, record_type=None, event_id=None)
+
+## Data Flow
+
+Structured documents
+-> Schema validation
+-> KnowledgeRecord generation
+-> Local document embeddings
+-> In-memory vector index
+-> Query embedding
+-> Cosine similarity
+-> Optional metadata filtering
+-> Ranked SearchHit results
 
 ## Source Documents
-
-Located in data/structured/:
 
 - events.csv
 - policies.csv
 - directory.json
 
-Current source data contains:
+The current knowledge base contains 19 records.
 
-- 3 events
-- 9 policies
-- 7 participants
+## Search Results
 
-Expected ingestion output: 19 KnowledgeRecord objects.
+Each result contains:
 
-## Ingestion
+- Original KnowledgeRecord
+- Cosine similarity score
+- Document identifier
+- Record identifier
+- Source reference
+- Source fingerprint
+- Business metadata
 
-Entry point:
+Similarity scores describe vector relevance,
+not factual correctness or verification confidence.
 
-app/rag/ingestion.py
+## Performance
 
-Function:
+Document embeddings are generated when the retriever
+is constructed.
 
-ingest_structured_documents(data_dir=None)
+The in-memory index is reused for subsequent searches.
 
-Returns:
+Only the query embedding is regenerated for each search.
 
-list[KnowledgeRecord]
+The current implementation uses linear search across
+the indexed document vectors.
 
-The function reads and validates all three documents.
-
-It rejects invalid schemas, duplicate identifiers,
-and references to unknown events.
-
-The function performs no network requests.
-
-## Chunking Strategy
-
-Each source record becomes one semantic knowledge
-unit instead of using arbitrary character boundaries.
-
-Event chunks contain schedules, venue and capacity.
-
-Policy chunks contain scope, category and rule text.
-
-Participant chunks contain reference identity,
-directory status and event associations.
-
-These units preserve business meaning and make
-source tracing straightforward.
-
-## Source Provenance
-
-Each knowledge record preserves:
-
-- document_id
-- record_id
-- event_id where applicable
-- source_path
-- source_reference
-- source_sha256
-
-The source reference uses a stable record identifier.
-
-SHA-256 fingerprints are derived from normalized
-structured records.
-
-These fingerprints can later support incremental
-indexing and changed-record detection.
-
-## Reproducibility
-
-Repeated ingestion of unchanged documents generates
-equivalent knowledge records.
-
-This does not yet establish idempotent database writes.
-
-Persistent indexing will require record upserts
-and removal of stale indexed records.
+This is appropriate for the small demonstration dataset.
 
 ## Testing
 
-From backend/:
+Run:
 
 python -m pytest tests/test_rag_ingestion.py -v
 
-## Planned Architecture
+python -m pytest tests/test_rag_retrieval.py -v
 
-Structured documents
--> Schema validation
--> KnowledgeRecord chunks
--> Embedding generation
--> Vector indexing
--> Query transformation
--> Semantic retrieval
--> Gemini grounded generation
--> Evidence-backed answer
+The retrieval unit tests use controlled fake embeddings
+to test ranking and validation without model inference.
 
-## Engineering Constraints
+Actual model relevance must be evaluated separately
+using the local FastEmbed model.
 
-- No paid APIs are required for local ingestion.
-- No LLM is used to validate authoritative data.
-- Source references must survive retrieval.
-- Missing evidence must not be fabricated.
-- Ingestion errors must be explicit.
-- Original structured records remain authoritative.
+## Current Limitations
+
+- Vector index exists only in process memory.
+- Embeddings are regenerated on process restart.
+- No PostgreSQL or pgvector persistence yet.
+- No automatic query transformation yet.
+- No exact identifier extraction from free-text queries.
+- No model-generated answers yet.
+- No answer abstention logic yet.
+- No conversation persistence yet.
+- No retrieval relevance benchmark yet.
+
+Top-ranked results must not automatically be treated
+as sufficient evidence to answer a question.
+
+## Next Phases
+
+1. Evaluate actual retrieval relevance.
+2. Add query classification and exact identifier handling.
+3. Introduce persistent vector indexing.
+4. Add retrieval evaluation datasets.
+5. Integrate grounded Gemini generation.
+6. Implement conversation persistence.
+
+## Cost Constraint
+
+All current ingestion and retrieval operations run
+locally and incur no cloud API or inference charges.

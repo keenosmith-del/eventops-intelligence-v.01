@@ -3,3 +3,7 @@ uvicorn[standard]
 pydantic
 httpx
 pytest
+
+# Local semantic embedding engine
+fastembed
+numpy
