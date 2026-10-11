@@ -114,21 +114,7 @@ def export(run_id: UUID, request: Request, verified_only: bool = False):
         )
         row["reference_matches"] = "; ".join(m["record_id"] for m in item["matches"])
         writer.writerow({k: csv_safe(v) for k, v in row.items()})
-    repository.step(
-        run_id, "export", "running", inputs={"verified_only": verified_only}
-    )
-    repository.step(
-        run_id,
-        "export",
-        "completed",
-        outputs={
-            "format": "CSV",
-            "verified_only": verified_only,
-            "exported_rows": sum(
-                not verified_only or r["status"] == "verified" for r in run["results"]
-            ),
-        },
-    )
+    # Downloads must not mutate the recorded execution or its replay clock.
     return Response(
         "\ufeff" + out.getvalue(),
         media_type="text/csv",

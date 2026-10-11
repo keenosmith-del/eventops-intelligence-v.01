@@ -1,0 +1,8 @@
+CONTROLLED SYNTHETIC ASSESSMENT REGISTRATION — NOT A REAL EMAIL
+
+Event: evt-101
+Full name: Lindi Mokoena-Test
+Email: LINDI.MOKOENA@EXAMPLE.COM
+Registration: AI Engineering Summit
+
+Case: inactive-conflict. Verify against directory and event references.

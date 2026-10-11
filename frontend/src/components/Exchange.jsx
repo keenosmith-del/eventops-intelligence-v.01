@@ -29,6 +29,7 @@ export default function Exchange({
 }) {
   const { question, retrieval, answer } = exchange;
   const context = retrieval?.query_plan?.context_resolution;
+  status = retrieval?.query_plan?.generation_status || status;
   return (
     <article className="exchange">
       <div className="question">
@@ -79,7 +80,7 @@ export default function Exchange({
           {statusText[status] ||
             (answer
               ? statusText.generated
-              : "No AI answer stored. The generation outcome for this historical exchange was not persisted by the API.")}
+              : "Evidence only · This older exchange has no saved generation outcome.")}
         </p>
         {answer && (
           <section className="answer">

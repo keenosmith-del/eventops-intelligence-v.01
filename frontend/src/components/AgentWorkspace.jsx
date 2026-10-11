@@ -291,6 +291,8 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
     flowSurface = useRef(null);
   const [flow, setFlow] = useState(null);
   const [loadingRuns, setLoadingRuns] = useState(true);
+  const [listError, setListError] = useState("");
+  const [listRevision, setListRevision] = useState(0);
   useEffect(() => {
     if (!flow || !flowSurface.current) return;
     const observer = new ResizeObserver(() =>
@@ -302,18 +304,14 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
   useEffect(() => {
     const c = new AbortController();
     setLoadingRuns(true);
-    Promise.all([api.connections(c.signal), api.runs(c.signal)])
-      .then(([tools, history]) => {
-        if (!c.signal.aborted) {
-          setConnections(tools);
-          setRuns(history);
-        }
-      })
-      .catch((err) => {
-        if (!c.signal.aborted) setError(workspaceError(err));
-      }).finally(() => { if (!c.signal.aborted) setLoadingRuns(false); });
+    setListError("");
+    api.connections(c.signal).then(tools => { if (!c.signal.aborted) setConnections(tools); })
+      .catch(err => { if (!c.signal.aborted) setListError(workspaceError(err)); });
+    api.runs(c.signal).then(history => { if (!c.signal.aborted) setRuns(history); })
+      .catch(err => { if (!c.signal.aborted) setListError(workspaceError(err)); })
+      .finally(() => { if (!c.signal.aborted) setLoadingRuns(false); });
     return () => c.abort();
-  }, [runId, view]);
+  }, [runId, view, listRevision]);
   useEffect(() => {
     const c = new AbortController();
     let timer;
@@ -409,15 +407,18 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
 
         <h1>{title}</h1>
         <p>
-          Review source reads, verification checks and saved execution results.
+          {view === "workspace" ? "Choose a reference event, then run verification. Sources are read, claims are compared and results are saved automatically." : view === "results" ? "Open a saved execution. Inspect evidence before exporting all records or only verified matches." : "Open a previous execution to revisit its evidence or replay the recorded processing stages."}
         </p>
       </div>
+      <nav className="fine-print" aria-label="Reviewer journey"><Link to="/workspace">1. Ask about an event</Link>{" → "}<Link to="/agents">2. Run verification</Link>{" → "}<Link to="/verification">3. Inspect results</Link>{" → "}<Link to="/history">4. Revisit history</Link></nav>
+      {listError && <p role="alert" className="notice error">{listError} <button onClick={() => setListRevision(value => value + 1)}>Retry saved executions</button></p>}
       {error && (
         <div className="notice error" role="alert">
           {error}
           <button onClick={() => location.reload()}>Reload view</button>
         </div>
       )}
+      {view === "results" && <p className="fine-print">Verified means the reference checks passed. Flagged records need review; unverified records lack a confirmed match. Use Inspect record to compare fields and source evidence. CSV exports use all saved records, independently of table filters.</p>}
       {run?.summary?.execution_mode && <p className="fine-print">Data mode: {run.summary.execution_mode.replaceAll("_", " ")}{run.summary.execution_mode.startsWith("controlled") ? " · Explicit synthetic assessment inputs; no live-provider processing claim." : " · Actual external source reads; no fixture fallback."}</p>}
       {view === "workspace" && (
         <>
@@ -487,12 +488,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
             <h2>Saved executions</h2>
             {view === "history" && runId && <button onClick={() => navigate("/history")}>Close execution</button>}
             <button
-              onClick={() =>
-                api
-                  .runs()
-                  .then(setRuns)
-                  .catch((err) => setError(workspaceError(err)))
-              }
+              onClick={() => setListRevision(value => value + 1)}
             >
               Refresh executions
             </button>
@@ -519,7 +515,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
                 </button>
               ))}
             </div>
-          ) : error ? <p>Saved executions are unavailable. Reload this view to retry.</p> : (
+          ) : listError ? <p>Saved executions are unavailable. Retry saved executions above.</p> : (
             <p>
               No executions saved yet. Run verification from the Agent
               Workspace.

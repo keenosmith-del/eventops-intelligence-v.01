@@ -10,12 +10,18 @@ describe("Recorded execution and saved analysis", () => {
     const bounds = replayBounds({ status: "partial", steps });
     expect(bounds.duration).toBe(3000);
     const during = replaySteps(steps, bounds.start + 1000);
-    expect(during.map(step => step.status)).toEqual(["running", "pending", "pending"]);
+    expect(during.map(step => step.status)).toEqual(["running", "pending", "outside_replay"]);
     expect(during[0].outputs).toEqual({});
     expect(during[1].error).toBeNull();
-    expect(replaySteps(steps, bounds.end).map(step => step.status)).toEqual(["completed", "skipped", "pending"]);
+    expect(replaySteps(steps, bounds.end).map(step => step.status)).toEqual(["completed", "skipped", "outside_replay"]);
     expect(replaySteps(steps, bounds.end)[0]).toEqual(steps[0]);
     expect(steps[0].status).toBe("completed");
+  });
+  it("excludes later CSV downloads from legacy run replay", () => {
+    const run = { status: "completed", finished_at: "2026-10-10T12:00:03Z", steps: [...steps.slice(0, 2), { node_id: "export", status: "completed", started_at: "2026-10-10T12:07:00Z", finished_at: "2026-10-10T12:07:01Z" }] };
+    const bounds = replayBounds(run);
+    expect(bounds.duration).toBe(3000);
+    expect(replaySteps(run.steps, bounds.end)[2]).toMatchObject({ status: "outside_replay", outputs: {}, finished_at: null });
   });
   it("does not invent a replay for active or untimed executions", () => {
     expect(replayBounds({ status: "running", steps })).toBeNull();

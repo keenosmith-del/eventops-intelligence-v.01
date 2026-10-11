@@ -71,6 +71,24 @@ describe("API compatibility and failures", () => {
     );
     await expect(api.list()).rejects.toThrow("Check the API and PostgreSQL");
   });
+  it("retries a 503 read once and returns the actual recovery response", async () => {
+    const fetch = vi.fn().mockResolvedValueOnce({ ok: false, status: 503 }).mockResolvedValueOnce({ ok: true, json: async () => [{ id: "saved" }] });
+    vi.stubGlobal("fetch", fetch);
+    expect(await api.runs()).toEqual([{ id: "saved" }]);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+  it("does not retry session or agent writes after a 503", async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
+    vi.stubGlobal("fetch", fetch);
+    await expect(api.startDemo()).rejects.toThrow("backend");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it("bounds repeated unavailable reads to two requests", async () => {
+    const fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
+    vi.stubGlobal("fetch", fetch);
+    await expect(api.runs()).rejects.toThrow("backend");
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
   it("reports a network outage", async () => {
     vi.stubGlobal(
       "fetch",

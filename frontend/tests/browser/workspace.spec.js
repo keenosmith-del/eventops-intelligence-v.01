@@ -93,7 +93,7 @@ async function fixtureApi(page, status = "not_requested") {
         },
       });
     } else if (path.endsWith(id))
-      await route.fulfill({ json: { conversation, messages: submitted ? (status === "generated" ? [question, retrieval, answer] : [question, retrieval]) : [] } });
+      await route.fulfill({ json: { conversation, messages: submitted ? (status === "generated" ? [question, { ...retrieval, query_plan: { ...retrieval.query_plan, generation_status: status } }, answer] : [question, { ...retrieval, query_plan: { ...retrieval.query_plan, generation_status: status } }]) : [] } });
     else if (req.method() === "POST")
       await route.fulfill({ status: 201, json: conversation });
     else await route.fulfill({ json: [] });
@@ -116,6 +116,8 @@ for (const [status, text] of [
       await page.getByLabel("Request Gemini answer").check();
     }
     await page.getByRole("button", { name: "Ask question" }).click();
+    await expect(page.getByText(text, { exact: false })).toBeVisible();
+    await page.reload();
     await expect(page.getByText(text, { exact: false })).toBeVisible();
     await expect(
       page.getByText("Context carried forward: EVT-101.", { exact: false }),
@@ -232,7 +234,7 @@ test("unknown generation outcome on historical retrieval is explicit", async ({
   );
   await page.goto(`/conversations/${id}`);
   await expect(
-    page.getByText("No AI answer stored.", { exact: false }),
+    page.getByText("This older exchange has no saved generation outcome", { exact: false }),
   ).toBeVisible();
   await expect(
     page.getByText("AI generation was not requested", { exact: false }),

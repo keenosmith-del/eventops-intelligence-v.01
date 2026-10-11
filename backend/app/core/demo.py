@@ -21,35 +21,32 @@ def session_id(request: Request) -> UUID | None:
     return getattr(request.state, "demo_session_id", None)
 
 
-def consume_budget(bucket: str, limit: int) -> None:
+def consume_budget_in_transaction(cursor, bucket: str, limit: int) -> None:
     if limit < 1:
-        raise HTTPException(
-            429, "This demonstration operation is disabled by its server-side budget."
-        )
+        raise HTTPException(429, "This demonstration operation is disabled by its server-side budget.")
+    cursor.execute(
+        """INSERT INTO demo_usage (bucket, requests) VALUES (%s, 1)
+        ON CONFLICT (bucket, day) DO UPDATE SET requests = demo_usage.requests + 1
+        WHERE demo_usage.requests < %s RETURNING requests""",
+        (bucket, limit),
+    )
+    if cursor.fetchone() is None:
+        raise HTTPException(429, "The demonstration request budget has been reached. Try again tomorrow.")
+
+
+def consume_budget(bucket: str, limit: int) -> None:
     with connect_db() as connection, connection.cursor() as cursor:
-        cursor.execute(
-            """
-            INSERT INTO demo_usage (bucket, requests) VALUES (%s, 1)
-            ON CONFLICT (bucket, day) DO UPDATE
-            SET requests = demo_usage.requests + 1
-            WHERE demo_usage.requests < %s
-            RETURNING requests
-        """,
-            (bucket, limit),
-        )
-        if cursor.fetchone() is None:
-            raise HTTPException(
-                429,
-                "The demonstration request budget has been reached. Try again tomorrow.",
-            )
+        consume_budget_in_transaction(cursor, bucket, limit)
 
 
 @router.post("/session")
 def create_demo_session():
     # Durable global cap prevents anonymous session creation bypassing quotas.
-    consume_budget("sessions", int(os.getenv("DEMO_SESSION_LIMIT", "100")))
     token = secrets.token_urlsafe(32)
     with connect_db() as connection, connection.cursor(row_factory=dict_row) as cursor:
+        # Admission and insertion share one connection/transaction. Failed entry
+        # must not consume the durable session allowance.
+        consume_budget_in_transaction(cursor, "sessions", int(os.getenv("DEMO_SESSION_LIMIT", "100")))
         cursor.execute(
             "INSERT INTO demo_sessions (token_hash) VALUES (%s) RETURNING expires_at",
             (hashlib.sha256(token.encode()).hexdigest(),),

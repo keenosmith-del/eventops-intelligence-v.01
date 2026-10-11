@@ -1,0 +1,44 @@
+[
+  {
+    "from": {
+      "email": "registration@example.com",
+      "name": "EventOps Synthetic Test"
+    },
+    "to": [
+      {
+        "email": "reviewer@example.com",
+        "name": "Assessment Sandbox"
+      }
+    ],
+    "subject": "EventOps final assessment | EVT-101 | positive",
+    "text": "CONTROLLED SYNTHETIC ASSESSMENT REGISTRATION \u2014 NOT A REAL EMAIL\n\nEvent: evt-101\nFull name: Ada Mensah\nEmail: ADA.MENSAH@EXAMPLE.COM\nRegistration: AI Engineering Summit\n\nCase: positive. Verify against directory and event references.\n"
+  },
+  {
+    "from": {
+      "email": "registration@example.com",
+      "name": "EventOps Synthetic Test"
+    },
+    "to": [
+      {
+        "email": "reviewer@example.com",
+        "name": "Assessment Sandbox"
+      }
+    ],
+    "subject": "EventOps final assessment | EVT-101 | duplicate",
+    "text": "CONTROLLED SYNTHETIC ASSESSMENT REGISTRATION \u2014 NOT A REAL EMAIL\n\nEvent: evt-101\nFull name: Ada Mensah\nEmail: ADA.MENSAH@EXAMPLE.COM\nRegistration: AI Engineering Summit\n\nCase: duplicate. Verify against directory and event references.\n"
+  },
+  {
+    "from": {
+      "email": "registration@example.com",
+      "name": "EventOps Synthetic Test"
+    },
+    "to": [
+      {
+        "email": "reviewer@example.com",
+        "name": "Assessment Sandbox"
+      }
+    ],
+    "subject": "EventOps final assessment | EVT-101 | inactive-conflict",
+    "text": "CONTROLLED SYNTHETIC ASSESSMENT REGISTRATION \u2014 NOT A REAL EMAIL\n\nEvent: evt-101\nFull name: Lindi Mokoena-Test\nEmail: LINDI.MOKOENA@EXAMPLE.COM\nRegistration: AI Engineering Summit\n\nCase: inactive-conflict. Verify against directory and event references.\n"
+  }
+]

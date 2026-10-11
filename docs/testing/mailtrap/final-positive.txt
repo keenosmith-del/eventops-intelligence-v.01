@@ -1,0 +1,8 @@
+CONTROLLED SYNTHETIC ASSESSMENT REGISTRATION — NOT A REAL EMAIL
+
+Event: evt-101
+Full name: Ada Mensah
+Email: ADA.MENSAH@EXAMPLE.COM
+Registration: AI Engineering Summit
+
+Case: positive. Verify against directory and event references.

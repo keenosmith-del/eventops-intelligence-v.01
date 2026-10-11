@@ -28,19 +28,24 @@ export async function request(
     controller.abort();
   }, timeout);
   try {
-    const response = await fetch(`${base}${path}`, {
-      method: body === undefined ? "GET" : "POST",
-      headers: {
-        Accept: blob ? "text/csv" : "application/json",
-        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
-        ...(typeof window !== "undefined" &&
-        sessionStorage.getItem("eventops-demo-token")
-          ? { "X-Demo-Session": sessionStorage.getItem("eventops-demo-token") }
-          : {}),
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: controller.signal,
-    });
+    let response;
+    // Retry only an explicitly unavailable read, never a session/run/message write.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      response = await fetch(`${base}${path}`, {
+        method: body === undefined ? "GET" : "POST",
+        headers: {
+          Accept: blob ? "text/csv" : "application/json",
+          ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+          ...(typeof window !== "undefined" &&
+          sessionStorage.getItem("eventops-demo-token")
+            ? { "X-Demo-Session": sessionStorage.getItem("eventops-demo-token") }
+            : {}),
+        },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: controller.signal,
+      });
+      if (!(body === undefined && response.status === 503 && attempt === 0) || controller.signal.aborted) break;
+    }
     if (!response.ok) {
       if (response.status >= 500)
         throw new Error(
@@ -66,7 +71,7 @@ export async function request(
     if (controller.signal.aborted) throw error;
     if (error instanceof TypeError)
       throw new Error(
-        "Cannot reach the backend. Check your connection and that the API is running on port 5050.",
+        "Cannot reach the backend. Check your connection and try again; the service may be waking up.",
       );
     throw error;
   } finally {
@@ -88,9 +93,9 @@ export const api = {
       `/api/agents/runs/${encodeURIComponent(id)}/export.csv?verified_only=${verifiedOnly}`,
       { blob: true },
     ),
-  health: (signal) => request("/health", { signal, timeout: 8000 }),
+  health: (signal) => request("/health", { signal, timeout: 90000 }),
   list: (signal) =>
-    request("/api/conversations?limit=30", { signal, timeout: 15000 }),
+    request("/api/conversations?limit=30", { signal, timeout: 90000 }),
   create: (title) =>
     request("/api/conversations", { body: title ? { title } : {} }),
   detail: (id, signal) =>

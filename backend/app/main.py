@@ -1,4 +1,5 @@
 import os
+import logging
 from contextlib import asynccontextmanager
 from app.core.environment import load_local_environment, validate_production_environment
 from fastapi import FastAPI, HTTPException, Request
@@ -107,7 +108,12 @@ async def public_demo_guard(request: Request, call_next):
         return response
     except HTTPException as exc:
         return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
-    except Exception:
+    except Exception as exc:
+        # Safe diagnostics: never log exception text, credentials, headers or bodies.
+        logging.getLogger("eventops.availability").warning(
+            "API unavailable: method=%s operation=%s category=%s",
+            request.method, request.url.path.split("/")[2] if len(request.url.path.split("/")) > 2 else "api", type(exc).__name__,
+        )
         return JSONResponse(
             {
                 "detail": "The backend could not complete this request. Check database availability."

@@ -72,3 +72,17 @@ def test_readiness_does_not_leak_database_failure(monkeypatch):
     response = TestClient(app).get("/ready")
     assert response.status_code == 503
     assert response.json() == {"status": "unavailable"}
+
+
+def test_session_unavailable_logs_category_without_provider_secret(monkeypatch, caplog):
+    from app.core import demo
+    from psycopg import OperationalError
+    from fastapi.testclient import TestClient
+    from app.main import app
+    def failed_connection():
+        raise OperationalError("private-provider-credential-must-not-appear")
+    monkeypatch.setattr(demo, "connect_db", failed_connection)
+    response = TestClient(app).post("/api/demo/session")
+    assert response.status_code == 503
+    assert "category=OperationalError" in caplog.text
+    assert "private-provider-credential" not in caplog.text + response.text

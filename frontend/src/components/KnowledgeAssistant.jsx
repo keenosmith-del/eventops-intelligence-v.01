@@ -106,11 +106,12 @@ export default function KnowledgeAssistant({ id }) {
       {empty && !loading && <section className="chat-welcome">
         <div className={`mascot-presence ${busy ? "is-thinking" : ""}`}><img className="chat-mascot" src="/mascot-thinking.png" alt="EventOps assistant" /></div>
         <h1>What would you like to know?</h1>
-        <p>Ask about event details, policies, registrations or participants.</p>
+        <p>Ask about the indexed events, policies and participant directory. Choose a question below to begin.</p>
         <div className="example-questions" aria-label="Example questions">
           {["Where is EVT-101 being held?", "What time does check-in close for EVT-101?", "Who is registered for EVT-101?"].map(example => <button key={example} type="button" disabled={busy || loading} onClick={() => { setQuestion(example); textarea.current?.focus(); }}>{example}</button>)}
         </div>
       </section>}
+      <p className="fine-print">Source evidence is shown by default. To check incoming registrations against these references, <Link to="/agents">continue to Agent Workspace</Link>.</p>
       {!empty && <div className="conversation-heading"><span>{conversation?.title || "Conversation"}</span>{!evidenceOpen && <button onClick={() => setEvidenceOpen(true)}>Evidence & context</button>}</div>}
       {!empty && <div className="exchanges">{exchanges.map(exchange => <Exchange key={exchange.question.id} exchange={exchange} status={statuses[exchange.retrieval?.id]} compact onInspect={() => { setSelected(exchange.question.id); setTab("evidence"); setEvidenceOpen(true); }} />)}<div ref={end} /></div>}
       {busy && <p className="chat-loading" role="status">{!empty && <span className="mascot-presence is-thinking pending-mascot"><img className="chat-mascot" src="/mascot-thinking.png" alt="" /></span>}Reviewing sources{generate ? " and requesting an answer" : ""}…</p>}

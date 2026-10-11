@@ -2,13 +2,16 @@
 export const terminal = status => ["completed", "partial", "failed"].includes(status);
 const timestamp = value => value ? Date.parse(value) : NaN;
 export function replayBounds(run) {
-  const times = (run?.steps || []).flatMap(step => [timestamp(step.started_at), timestamp(step.finished_at)]).filter(Number.isFinite);
+  const times = (run?.steps || []).filter(step => step.node_id !== "export").flatMap(step => [timestamp(step.started_at), timestamp(step.finished_at)]).filter(Number.isFinite);
   if (!terminal(run?.status) || times.length < 2) return null;
-  const start = Math.min(...times), end = Math.max(...times);
+  const start = Math.min(...times);
+  const finished = timestamp(run.finished_at);
+  const end = Number.isFinite(finished) ? Math.min(finished, Math.max(...times)) : Math.max(...times);
   return end > start ? { start, end, duration: end - start } : null;
 }
 export function replaySteps(steps, at) {
   return steps.map(step => {
+    if (step.node_id === "export") return { ...step, status: "outside_replay", inputs: {}, outputs: {}, error: null, started_at: null, finished_at: null };
     const start = timestamp(step.started_at), finish = timestamp(step.finished_at);
     if (Number.isFinite(finish) && at >= finish) return step;
     if (Number.isFinite(start) && at >= start) return { ...step, status: "running", outputs: {}, error: null, finished_at: null };

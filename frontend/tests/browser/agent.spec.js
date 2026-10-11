@@ -350,7 +350,7 @@ test("real polling follows persisted stages and allows manual inspection", async
 test("recorded replay uses timestamps, pauses and never starts another run", async ({ page }) => {
   await seed(page);
   let requests = 0;
-  const saved = { ...fixtureRun, summary: { ...fixtureRun.summary, execution_mode: "controlled_assessment_fixture" }, steps: fixtureRun.steps.map((step, index) => ({ ...step, started_at: new Date(Date.parse("2026-10-10T12:00:00Z") + index * 2000).toISOString(), finished_at: step.node_id === "export" ? null : new Date(Date.parse("2026-10-10T12:00:00Z") + index * 2000 + 1000).toISOString(), outputs: { record_count: 1 } })) };
+  const saved = { ...fixtureRun, summary: { ...fixtureRun.summary, execution_mode: "controlled_assessment_fixture" }, steps: fixtureRun.steps.map((step, index) => ({ ...step, started_at: step.node_id === "export" ? "2026-10-10T12:07:00Z" : new Date(Date.parse("2026-10-10T12:00:00Z") + index * 2000).toISOString(), finished_at: step.node_id === "export" ? "2026-10-10T12:07:01Z" : new Date(Date.parse("2026-10-10T12:00:00Z") + index * 2000 + 1000).toISOString(), outputs: { record_count: 1 } })) };
   await page.route(`**/api/agents/runs/${id}`, route => { requests++; return route.fulfill({ json: saved }); });
   await page.goto(`/history/${id}`);
   await page.getByRole("button", { name: "Replay execution", exact: true }).click();
@@ -359,6 +359,7 @@ test("recorded replay uses timestamps, pauses and never starts another run", asy
   await page.getByRole("button", { name: "Pause replay" }).click();
   await expect(replay).toContainText("Paused");
   const timeline = page.getByLabel("Recorded timeline");
+  await expect(timeline).toHaveAttribute("max", "19000");
   await timeline.fill("2500");
   await expect(page.getByRole("button", { name: "Calendar feed · running", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Web reference · pending", exact: true })).toBeVisible();
@@ -396,4 +397,14 @@ test("minimal controls, inspection focus and closing saved history", async ({ pa
   await expect(page).toHaveURL(/\/history$/);
   await expect(page.getByRole("heading", { name: "Execution · partial" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /EVT-101 · partial/ })).toBeVisible();
+});
+
+test("a missing selected execution does not turn successful empty history into a list failure", async ({ page }) => {
+  await seed(page);
+  await page.route(`**/api/agents/runs/${id}`, route => route.fulfill({ status: 404, json: { detail: "Execution not found" } }));
+  await page.route("**/api/agents/runs", route => route.fulfill({ json: [] }));
+  await page.goto(`/verification/${id}`);
+  await expect(page.getByRole("alert")).toContainText("Execution not found");
+  await expect(page.getByText("No executions saved yet.", { exact: false })).toBeVisible();
+  await expect(page.getByText("Saved executions are unavailable.", { exact: false })).toHaveCount(0);
 });

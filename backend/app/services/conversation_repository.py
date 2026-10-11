@@ -254,6 +254,16 @@ class ConversationRepository:
 
         return messages
 
+    def set_generation_status(self, message_id: int, status: str) -> None:
+        """Correct the retrieval outcome if generated-answer validation rejects it."""
+        if status not in {"not_requested", "generated", "unavailable", "insufficient_evidence"}:
+            raise ValueError("Invalid generation status")
+        with self.connection.cursor() as cursor:
+            cursor.execute(
+                "UPDATE rag_messages SET query_plan = jsonb_set(query_plan, '{generation_status}', %s) WHERE id=%s AND kind='retrieval'",
+                (Jsonb(status), message_id),
+            )
+
     def append_generated_answer(
         self,
         conversation_id: UUID,

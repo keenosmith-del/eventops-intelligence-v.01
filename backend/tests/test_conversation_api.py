@@ -546,6 +546,7 @@ def test_unavailable_generation_preserves_retrieval(
     body = response.json()
 
     assert body["generation_status"] == "unavailable"
+    assert next(m for m in client.get(f"/api/conversations/{conversation_id}").json()["messages"] if m["kind"] == "retrieval")["query_plan"]["generation_status"] == "unavailable"
     assert len(body["messages"]) == 2
 
     assert body["messages"][1]["evidence"][0]["record_id"] == "POL-003"
@@ -621,6 +622,7 @@ def test_unsupported_generation_citation_is_rejected(
     body = response.json()
 
     assert body["generation_status"] == "unavailable"
+    assert next(m for m in client.get(f"/api/conversations/{conversation_id}").json()["messages"] if m["kind"] == "retrieval")["query_plan"]["generation_status"] == "unavailable"
 
     # The rejected answer must not be persisted.
     assert len(body["messages"]) == 2
@@ -684,3 +686,23 @@ def test_follow_up_context_survives_generated_answer(
     }
 
     assert history[5]["evidence"][0]["record_id"] == "POL-003"
+
+
+@pytest.mark.parametrize("outcome", ["not_requested", "unavailable", "insufficient_evidence", "generated"])
+def test_generation_outcome_survives_database_restore(api_client, outcome):
+    client, repository, _ = api_client
+    conversation_id = create_conversation(client)
+    def generator(question, evidence):
+        return GroundedAnswer(
+            status=outcome,
+            answer="Check-in closes at 08:45 SAST." if outcome == "generated" else "",
+            citations=[Citation(record_id=evidence[0]["record_id"], source_reference=evidence[0]["source_reference"])] if outcome == "generated" else [],
+            model="test-provider" if outcome == "generated" else None,
+        )
+    app.dependency_overrides[get_answer_generator] = lambda: generator
+    response = client.post(f"/api/conversations/{conversation_id}/messages", json={"question": "What time does check-in close for EVT-101?", "generate_answer": outcome != "not_requested"})
+    assert response.status_code == 200
+    assert response.json()["generation_status"] == outcome
+    restored = client.get(f"/api/conversations/{conversation_id}").json()
+    retrieval = next(message for message in restored["messages"] if message["kind"] == "retrieval")
+    assert retrieval["query_plan"]["generation_status"] == outcome

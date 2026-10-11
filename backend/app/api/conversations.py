@@ -209,6 +209,8 @@ def submit_question(
         "inherited_event_id": resolved.inherited_event_id,
     }
 
+    query_plan["generation_status"] = generation_result.status if generation_result else "not_requested"
+
     try:
         messages = repository.append_retrieval_exchange(
             conversation_id=conversation_id,
@@ -240,6 +242,8 @@ def submit_question(
                     # Reject invalid generated-answer data.
                     # Preserve the valid retrieval exchange.
                     generation_status = "unavailable"
+                    repository.set_generation_status(messages[1].id, generation_status)
+                    messages[1].query_plan["generation_status"] = generation_status
 
                 else:
                     messages.append(answer_message)

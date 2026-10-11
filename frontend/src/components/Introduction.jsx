@@ -67,7 +67,8 @@ export function SignIn({ onEnter }) {
           <h1 id="signin-title">Welcome to EventOps</h1>
           <p className="intro-entry-description">Enter the workspace to explore grounded knowledge, automated workflows and verified operational data.</p>
           <button className="intro-action" disabled={busy} aria-busy={busy} onClick={enter}>{busy ? "Opening workspace…" : "Enter workspace"}<ArrowRight size={18} strokeWidth={1.4} aria-hidden="true" /></button>
-          {error && <p className="intro-error" role="alert">{error}</p>}
+          {busy && <p className="intro-access-note" role="status">The service may take up to 90 seconds to wake up. Please wait.</p>}
+          {error && <p className="intro-error" role="alert">{error} Try Enter workspace again.</p>}
           <p className="intro-access-note">Reviewer demonstration access<span className="intro-account-note">No account required for demonstration access.</span></p>
         </section>
       </div>

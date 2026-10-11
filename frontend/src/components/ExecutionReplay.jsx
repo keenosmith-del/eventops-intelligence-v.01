@@ -33,7 +33,7 @@ export default function ExecutionReplay({ replay }) {
   if (!replay.bounds) return <p className="fine-print">Replay requires a finished run with recorded step timestamps.</p>;
   if (!replay.active) return <button onClick={replay.start}>Replay execution</button>;
   return <section className="execution-replay" aria-label="Recorded execution replay">
-    <p role="status">Recorded replay · {replay.playing ? "Playing" : "Paused"} · No new run or tool calls</p>
+    <p role="status">Recorded replay · {replay.playing ? "Playing" : "Paused"} · No new run or tool calls · CSV downloads are outside this timeline</p>
     <div className="replay-controls">
       <button onClick={replay.playing ? replay.pause : replay.resume}>{replay.playing ? "Pause replay" : "Resume replay"}</button>
       <button onClick={replay.finish}>Return to complete execution</button>

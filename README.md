@@ -4,7 +4,7 @@ Inference Group AI Engineering assessment: an integrated React workspace for str
 
 ## Current status
 
-Deployment preparation (11 October 2026): **blocked at Neon authorization; no public URLs verified**. Render account/repository access and GitHub SSH work. Linux backend **210 passed / 1 skipped**, frontend unit **12 passed**, production-build browser **24 passed / 3 live skips**, real isolated RAG/Calendar/Web agent checks and restart persistence passed. CI-gated Render + Neon deployment is prepared locally, uncommitted/unpushed. See the [runbook](docs/deployment/README.md), [status and blockers](docs/deployment/DEPLOYMENT_STATUS.md), and [checklist](docs/deployment/PRODUCTION_CHECKLIST.md). Local root .env, Docker, FastAPI and npm run dev remain independent; approved UI designs are unchanged.
+Production acceptance (11 October 2026): **Partial Pass**. Commit `6128bd1c8ba250fdc1213011ca753ea598077a7a` is live on both Render services with successful CI. [Frontend](https://eventops-intelligence.onrender.com) · [Backend](https://eventops-intelligence-api.onrender.com). Neon persists all four migrations, 19 embeddings, conversations and real LangGraph results. Live RAG, Calendar/Web reads, empty Mailtrap connectivity, CSV and history were verified. Nonempty email processing, live Gemini, n8n, hosted memory headroom and idle wake remain incomplete; replay/export timing and restored generation-status defects are documented. See the [acceptance report](docs/deployment/PRODUCTION_ACCEPTANCE_REPORT.md), [current status](docs/deployment/DEPLOYMENT_STATUS.md) and [runbook](docs/deployment/README.md). This acceptance pass changes documentation/evidence only, without commit, push or deployment.
 
 Latest checkpoint: **Part 2 is implemented locally**: real execution polling, visible progress, timestamp replay, field-level record inspection, saved-result CSV analysis/export/history, and consistent sidebar tooltip dismissal. Entry composition and existing Knowledge Assistant behavior are retained; requested shared-footer and example-question refinements are included. Backend regression **198 passed / 1 skipped**, frontend unit **12 passed**, Chrome browser **25 passed in 24.2 s** with live opt-ins, and production build passed. [Part 2 compliance report](docs/testing/PART2_EXECUTION.md) records exact browser results, failures, actual source counts and limitations. Mailtrap connects but remains empty. A protected n8n handoff is prepared; runtime import/webhook execution remains unverified. Uploads and deployment are outside this increment. No automatic commit or push was performed.
 
@@ -14,14 +14,14 @@ Latest checkpoint: **Part 2 is implemented locally**: real execution polling, vi
 | Query transformation, context retention and citations | Existing deterministic RAG query/context pipeline; original wording, evidence and successful generated citations persist |
 | Grounded generative answers | Existing optional Gemini integration; prior live verification documented in docs/testing/README.md; disabled by default and throughout this regression work |
 | Polished web interface | `/signin`, five navigation views, Evidence/Context panel, React Flow graph, responsive layouts, real API integration |
-| Calendar tool | Real public HTTPS iCalendar feed read, executed locally |
-| Web tool | Real HTTPS reference API read, executed locally |
+| Calendar tool | Real public HTTPS iCalendar feed read, verified in production |
+| Web tool | Real HTTPS reference API read, verified in production |
 | Email tool | Real Mailtrap HTTPS read confirmed HTTP 200 with an empty inbox; controlled-message ingestion/persistence awaits insertion; [bounded live test and instructions](docs/testing/MAILTRAP_INTEGRATION.md) |
 | Extraction, normalization, deduplication and verification | Deterministic LangGraph stages, reference comparisons, conflict/missing-field flags and provenance |
 | Results, execution history and export | PostgreSQL runs/steps/results; raw/normalized/reference field checks, actual CSV analysis/download and history restoration; recorded timestamp replay |
 | n8n handoff | Protected idempotent service endpoints and inactive workflow; [configure and test](automations/n8n/README.md). Runtime execution pending |
 | Public assessment controls | Anonymous demo-token isolation, explicit CORS, persistent quotas, input/source bounds, read-only tools |
-| Public URL | **Not deployed**. Owner must configure accounts/credentials and deploy |
+| Public URL | [Live reviewer entry](https://eventops-intelligence.onrender.com); both services at 6128bd1, acceptance Partial Pass |
 
 Calendar and Web have live record-processing evidence. Mailtrap now has a successful real HTTPS connection read, but its inbox is empty; three-source record-processing completion remains unverified. Default public holiday observations do not match the fictional EVT dataset; all 16 observed records in the earlier live run were correctly flagged, with 11 duplicates merged. Positive verified/inactive/conflicting cases are covered by explicit synthetic test inputs, not substituted into live runs.
 

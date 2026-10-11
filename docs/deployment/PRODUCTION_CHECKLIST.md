@@ -1,6 +1,6 @@
 # Production release checklist
 
-Recorded 11 October 2026. Checked preparation items are local evidence, not public deployment claims.
+Recorded 11 October 2026. Production is live at 6128bd1 with Partial Pass acceptance. See [actual live evidence and limitations](PRODUCTION_ACCEPTANCE_REPORT.md). Preparation items below remain historical local evidence.
 
 ## Preparation verified
 
@@ -18,32 +18,34 @@ Recorded 11 October 2026. Checked preparation items are local evidence, not publ
 - [x] Prepare GitHub Actions + Render main/checksPass, SPA rewrite, production guards.
 - [x] Verify Render browser account/repository integration and GitHub SSH access.
 
-## Provisioning — outstanding
+## Provisioning — current verified state
 
-- [ ] Approve pending Neon Console GitHub OAuth (read-only email addresses); complete any signup terms yourself.
-- [ ] Actual Neon Free independent production project/database, PostgreSQL 17, pgvector/TLS and quotas verified.
-- [ ] No trial, payment information, paid upgrade or automatic billing introduced.
-- [ ] Review/commit/push the complete required v.01 implementation and deployment preparation; remote CI passes.
-- [ ] Review Render Free/backend/static-site and workspace spending controls before provisioning.
-- [ ] DATABASE_URL supplied securely only to Render; exact API/frontend origins set.
-- [ ] Optional dedicated Mailtrap/Gemini settings on backend only; generation disabled for checks.
-- [ ] Connected repo/main, whole-repo root and After CI Checks Pass confirmed on both services.
-- [ ] Deploy and compare actual release SHA with passed CI SHA.
+- [x] Neon authorized; independent Free production project and pgvector confirmed.
+- [x] Actual PostgreSQL 18.6 recorded (original plan/local tests used 17).
+- [x] Complete implementation pushed at 6128bd1; current backend/frontend CI passed.
+- [x] Both Render services individually live at full intended SHA; Free backend and Static Site confirmed.
+- [x] Frontend public bundle embeds intended HTTPS API; actual reviewer CORS/API operation verified.
+- [x] Hosted database writes match browser-generated test conversation/run IDs.
+- [ ] Independent billing/spending-control audit beyond observed plans; acceptance created no resources or upgrades.
 
-## Actual public verification — outstanding
+## Actual public verification
 
-- [ ] Public frontend/backend HTTPS URLs recorded after testing.
-- [ ] Health/readiness pass, including cold idle start.
-- [ ] Neon extension, four migrations/indexes, 19 records/embeddings, three documents, dimensions 384.
-- [ ] Landing/mascots/reviewer entry, all five views/nested refreshes, no JS/CORS errors.
-- [ ] Real RAG/evidence/citation rendering, contextual follow-up and fresh-page restore.
-- [ ] Cross-session conversation/run access denied; public docs/debug disabled.
-- [ ] Hosted Calendar/Web remote steps succeed; Mailtrap actual remote call separately verified if configured.
-- [ ] Processing/deduplication/discrepancies, graph statuses, saved verification, CSV/history match actual run.
-- [ ] Same reviewer conversation/run retains evidence/results after restart/redeploy.
-- [ ] Unchanged sources do not duplicate/re-embed unnecessarily.
-- [ ] Intentional frontend commit → passing CI → changed hosted frontend and matching SHA.
-- [ ] Failed required CI demonstrated to prevent automatic deployment.
-- [ ] Hosted logs/memory/quotas checked, credentials private, actual backup/recovery options inspected.
+- [x] Public frontend/backend HTTPS URLs, warm health/readiness.
+- [x] Neon extension/four migrations/indexes/19 embeddings/three documents/dimensions 384.
+- [x] Desktop entry, real RAG/context/citation, nested restore; representative 390 px landing/entry/sources.
+- [x] Cross-context conversation/run denial; public Swagger/OpenAPI disabled; trusted/untrusted CORS.
+- [x] One hosted Calendar/Web/Mailtrap remote execution; Mailtrap empty, not positive email ingestion.
+- [x] Processing/deduplication/missing-field checks, stored graph, CSV downloads/history match actual run.
+- [x] Read-only Neon confirms saved messages, execution, five results and eleven completed stages after export.
+- [x] Hosted startup and recent request logs inspected; actual application metrics unavailable on Free.
+- [ ] Idle spin-down/wake-up and backend restart/redeploy persistence.
+- [ ] Nonempty email extraction; positive verified/inactive/conflicting live cases.
+- [ ] Live Gemini if required and explicitly authorized; no inference called during acceptance.
+- [ ] n8n configuration/runtime/webhook handoff; currently unconfigured 503.
+- [ ] Deliberate integration timeout and failed-run browser feedback.
+- [ ] Full responsive workspace/results/graph breakpoint matrix.
+- [ ] Hosted peak RSS/headroom and recovery exercise; do not infer from local 414 MiB measurement.
+- [ ] Intentional frontend change followed by gated deploy, and deliberately failed CI preventing deploy.
+- [ ] Resolve historical generation-status restoration and post-export replay timing defects.
 
-n8n runtime/cloud execution is optional and unverified. Do not mark connected based on the export. Do not substitute synthetic EVT fixtures for actual external observations. Never use live Gemini generation as an automated deployment test.
+Do not equate configured integrations, empty Mailtrap connectivity or local fixtures with full live three-source record processing. No redeploy, forced failure, paid upgrade or new agent run was performed just to fill checklist gaps.

@@ -1,6 +1,6 @@
 # EventOps deployment
 
-Preparation verified **11 October 2026 (Africa/Johannesburg)**. Public deployment is **blocked at Neon account authorization**. No EventOps cloud resources or verified public URLs exist. See [deployment evidence](DEPLOYMENT_STATUS.md) and the [release checklist](PRODUCTION_CHECKLIST.md).
+Production verified **11 October 2026 (Africa/Johannesburg)**: both Render services are live at `6128bd1`, Neon is authorized and connected, and acceptance is **Partial Pass**. See the [live acceptance report](PRODUCTION_ACCEPTANCE_REPORT.md), [current status](DEPLOYMENT_STATUS.md) and [release checklist](PRODUCTION_CHECKLIST.md). Setup instructions below are for future reprovisioning, not pending actions.
 
 ## Architecture and isolation
 
@@ -8,19 +8,19 @@ Preparation verified **11 October 2026 (Africa/Johannesburg)**. Public deploymen
 | --- | --- | --- |
 | React/Vite | 127.0.0.1:5173, npm run dev, existing proxy | Render Static Site, frontend/dist, public HTTPS API |
 | FastAPI | 127.0.0.1:5050, existing reload command | Render Free Python service, Python 3.12.15, one worker, 0.0.0.0:$PORT |
-| PostgreSQL | Docker PostgreSQL 17/pgvector, 127.0.0.1:55432, existing volume | Independent Neon Free project, PostgreSQL 17, TLS and pgvector |
+| PostgreSQL | Docker PostgreSQL 17/pgvector, 127.0.0.1:55432, existing volume | Independent Neon Free project, actual PostgreSQL 18.6, TLS and pgvector |
 | Configuration | Ignored root .env, existing credentials | Separate Render environment; production never reads developer dotenv files |
 | Durable data | Local PostgreSQL | Neon knowledge/embeddings, conversations, sessions/ownership/quotas, runs/steps/results, n8n ledger |
 | Model cache | Existing developer cache | /tmp/eventops-models, disposable and re-downloadable |
 
 The approved UI and routes are unchanged. No local service requires Neon or Render. No production secret belongs in Vite, GitHub Actions or committed files. No local conversations, credentials or test executions are copied to production. Runtime uploads are not implemented; there is no filesystem upload store to migrate.
 
-## Exact account setup and deployment fields
+## Account setup and deployment fields (future reprovisioning)
 
-1. Complete **Neon Console** GitHub authorization in the pending Chrome tab. It requests read-only email addresses. The computer-use policy requires the owner to approve the new grant. Complete any signup terms yourself. Create an independent **Free** project, suggested name `eventops-intelligence-production`, select PostgreSQL **17** and a production database/role. Do not choose a trial, upgrade, attach payment information or reuse unrelated data. Verify current Free quotas; stop if free provisioning is unavailable.
+1. For a new account, complete Neon authorization and any signup terms as required. The current authorized Free project is `eventops-intelligence-v01`, PostgreSQL **18.6**; PostgreSQL 17 was the original plan and local test version. For reprovisioning, select a supported version and verify compatibility with the locked pgvector client/schema. Create an independent **Free** project and production database/role. Do not choose a trial, upgrade, attach payment information or reuse unrelated data. Verify current Free quotas; stop if free provisioning is unavailable.
 2. Obtain a TLS PostgreSQL URL from Neon Connection Details. Prefer the **direct endpoint** for this small single-worker service and serialized migration transactions. Paste it only into Render's secure `DATABASE_URL` field. The role needs permission to create the vector extension/tables. Keep backups/exports secure; inspect the actual project's Free recovery retention before relying on it.
-3. Review and intentionally commit/push the complete working v.01 implementation and deployment changes to GitHub **main**. Existing uncommitted Part 2 code/tests/n8n documentation are required for the tested implementation. Pushing only a subset can change behavior or fail CI. Git SSH access works; the separate gh token is invalid. Use normal Git SSH, or `gh auth login -h github.com` for CLI API operations. No commit/push was made by this task.
-4. Render is already signed in and its existing GitHub integration lists **keenosmith-del/eventops-intelligence-v.01**. Use New → Blueprint → the connected repository, branch main, path render.yaml. Do not use the public-repository URL fallback: it does not provide automatic deployment. The draft form was inspected but not submitted; reload after pushing the prepared YAML.
+3. Review and intentionally commit/push the complete working v.01 implementation and deployment changes to GitHub **main**. The complete implementation is committed and deployed at `6128bd1`; future releases must include all required code/tests/migrations. Git SSH access works; the separate gh token is invalid. Use normal Git SSH, or `gh auth login -h github.com` for CLI API operations. No commit/push was made by this task.
+4. Render is already signed in and its existing GitHub integration lists **keenosmith-del/eventops-intelligence-v.01**. Use New → Blueprint → the connected repository, branch main, path render.yaml. Do not use the public-repository URL fallback: it does not provide automatic deployment. The current Blueprint has deployed both services; for future provisioning use the reviewed committed YAML.
 5. The updated Blueprint creates only a **Free Python web service** and a **static site**: no database, disk or paid service. Supply DATABASE_URL, FRONTEND_ORIGINS and VITE_API_BASE_URL. Optional Gemini/Mailtrap keys are absent from mandatory prompts; add later to backend Environment only when intended. Verify the actual plans and workspace spending controls before final submission. New security grants/public provisioning require action-time confirmation under the computer-use policy.
 6. Backend: root directory **blank** (whole repository), build `pip install -r backend/requirements.lock.txt`, start `bash scripts/start-backend.sh`, health-check `/ready`, branch main, **After CI Checks Pass**. A backend-only root excludes required data/migrations/scripts.
 7. Frontend: root directory **blank**, build `bash scripts/build-frontend.sh`, publish `frontend/dist`, Node **24**, branch main, **After CI Checks Pass**. SPA rewrite `/* → /index.html` is included.
