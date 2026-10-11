@@ -4,7 +4,9 @@ Inference Group AI Engineering assessment: an integrated React workspace for str
 
 ## Current status
 
-Latest checkpoint: the shared application design is complete for Phase 1 review. Approved entry pages are preserved; build, **8 frontend API-client tests**, **22 browser tests** and **191 backend tests** pass (one opt-in backend test skipped). [Current phase report and assessment compliance](docs/testing/APPLICATION_PHASE1.md) distinguishes implemented, locally/external-provider verified and still-blocked work. CSV/JSON uploads, unseen-input expansion and real n8n automation remain later increments. Nothing is deployed or automatically committed.
+Deployment preparation (11 October 2026): **blocked at Neon authorization; no public URLs verified**. Render account/repository access and GitHub SSH work. Linux backend **210 passed / 1 skipped**, frontend unit **12 passed**, production-build browser **24 passed / 3 live skips**, real isolated RAG/Calendar/Web agent checks and restart persistence passed. CI-gated Render + Neon deployment is prepared locally, uncommitted/unpushed. See the [runbook](docs/deployment/README.md), [status and blockers](docs/deployment/DEPLOYMENT_STATUS.md), and [checklist](docs/deployment/PRODUCTION_CHECKLIST.md). Local root .env, Docker, FastAPI and npm run dev remain independent; approved UI designs are unchanged.
+
+Latest checkpoint: **Part 2 is implemented locally**: real execution polling, visible progress, timestamp replay, field-level record inspection, saved-result CSV analysis/export/history, and consistent sidebar tooltip dismissal. Entry composition and existing Knowledge Assistant behavior are retained; requested shared-footer and example-question refinements are included. Backend regression **198 passed / 1 skipped**, frontend unit **12 passed**, Chrome browser **25 passed in 24.2 s** with live opt-ins, and production build passed. [Part 2 compliance report](docs/testing/PART2_EXECUTION.md) records exact browser results, failures, actual source counts and limitations. Mailtrap connects but remains empty. A protected n8n handoff is prepared; runtime import/webhook execution remains unverified. Uploads and deployment are outside this increment. No automatic commit or push was performed.
 
 | Requirement | Actual implementation / evidence |
 | --- | --- |
@@ -16,7 +18,8 @@ Latest checkpoint: the shared application design is complete for Phase 1 review.
 | Web tool | Real HTTPS reference API read, executed locally |
 | Email tool | Real Mailtrap HTTPS read confirmed HTTP 200 with an empty inbox; controlled-message ingestion/persistence awaits insertion; [bounded live test and instructions](docs/testing/MAILTRAP_INTEGRATION.md) |
 | Extraction, normalization, deduplication and verification | Deterministic LangGraph stages, reference comparisons, conflict/missing-field flags and provenance |
-| Results, execution history and export | PostgreSQL runs/steps/results; selectable node/record detail; actual CSV download and history restoration verified |
+| Results, execution history and export | PostgreSQL runs/steps/results; raw/normalized/reference field checks, actual CSV analysis/download and history restoration; recorded timestamp replay |
+| n8n handoff | Protected idempotent service endpoints and inactive workflow; [configure and test](automations/n8n/README.md). Runtime execution pending |
 | Public assessment controls | Anonymous demo-token isolation, explicit CORS, persistent quotas, input/source bounds, read-only tools |
 | Public URL | **Not deployed**. Owner must configure accounts/credentials and deploy |
 
@@ -78,7 +81,7 @@ Existing APIs remain: `GET /health`, `POST /api/rag/retrieve`, `POST/GET /api/co
 
 Additions: `POST /api/demo/session`, `GET /api/demo/config`, `GET /api/knowledge/sources`, `GET /api/agents/connections`, `POST/GET /api/agents/runs`, `GET /api/agents/runs/{uuid}`, `/results`, `/export.csv?verified_only=false`.
 
-Interactive schemas: http://127.0.0.1:5050/docs. Message requests retain `question`, `top_k`, `generate_answer`; original backend data models/contracts were preserved. New SQL migration 003 is additive.
+Interactive schemas: http://127.0.0.1:5050/docs. Message requests retain `question`, `top_k`, `generate_answer`; original backend data models/contracts were preserved. SQL migrations 003 (agent runs) and 004 (idempotent service deliveries) are additive. Protected n8n service endpoints: `POST /api/integrations/n8n/runs`, `GET /api/integrations/n8n/runs/{uuid}`; require server-only service credentials, never reviewer browser tokens.
 
 ## Validation
 

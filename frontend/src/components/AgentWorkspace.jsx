@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ReactFlow, Handle, Position, MarkerType } from "@xyflow/react";
+import { ReactFlow, Handle, Position, MarkerType, useNodesInitialized, useReactFlow, useNodesState } from "@xyflow/react";
 import { Check, Clock3, LoaderCircle, Minus, X } from "lucide-react";
 import "@xyflow/react/dist/style.css";
 import { api } from "../api.js";
@@ -22,6 +22,16 @@ const labels = {
   export: "CSV export",
 };
 const order = Object.keys(labels);
+function FitExecutionGraph() {
+  const initialized = useNodesInitialized();
+  const { fitView } = useReactFlow();
+  useEffect(() => {
+    if (!initialized) return;
+    const frame = requestAnimationFrame(() => fitView({ padding: 0.16, duration: 0 }));
+    return () => cancelAnimationFrame(frame);
+  }, [initialized, fitView]);
+  return null;
+}
 const coordinates = [
   [240, 0],
   [0, 120],
@@ -89,6 +99,7 @@ export async function downloadResults(runId, verifiedOnly = false) {
 }
 
 export function ResultTable({ run, onExport }) {
+  const detail = useRef(null);
   const [filter, setFilter] = useState("all"),
     [selected, setSelected] = useState(null);
   const [sourceFilter, setSourceFilter] = useState("all"), [issueFilter, setIssueFilter] = useState("all"), [eventFilter, setEventFilter] = useState("all");
@@ -97,6 +108,11 @@ export function ResultTable({ run, onExport }) {
   const stats = analysis(records);
   const rows = records.filter(r => (filter === "all" || (filter === "incomplete" ? incomplete(r) : r.status === filter)) && (sourceFilter === "all" || r.evidence.some(item => item.source_type === sourceFilter)) && (issueFilter === "all" || r.issues.includes(issueFilter)) && (eventFilter === "all" || r.event_id === eventFilter));
   const record = records.find((r) => r.id === selected);
+  function revealDetail() {
+    detail.current?.focus({ preventScroll: true });
+    detail.current?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
+  useEffect(() => { if (selected) revealDetail(); }, [selected]);
   return (
     <section className="results-section">
       <div className="result-toolbar">
@@ -189,7 +205,7 @@ export function ResultTable({ run, onExport }) {
                   <td>{item.duplicate_count}</td>
                   <td title={item.issues.join(", ")}>{item.issues.map(issue => issue.replaceAll("_", " ")).join(", ") || "None"}</td>
                   <td>
-                    <button onClick={() => setSelected(item.id)}>
+                    <button onClick={() => { if (selected === item.id) revealDetail(); else setSelected(item.id); }}>
                       Inspect record
                     </button>
                   </td>
@@ -203,7 +219,7 @@ export function ResultTable({ run, onExport }) {
         </div>
       )}
       {record && (
-        <section className="panel record-detail" aria-label="Record evidence">
+        <section ref={detail} tabIndex={-1} className="panel record-detail" aria-label="Record evidence">
           <div className="result-toolbar">
             <h2>{record.full_name || record.title}</h2>
             <button onClick={() => setSelected(null)}>Close detail</button>
@@ -354,7 +370,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
     }
   }
   const step = visibleSteps.find(item => item.node_id === selected);
-  const nodes = useMemo(() => order.map((key, i) => ({
+  const nodeUpdates = useMemo(() => order.map((key, i) => ({
     id: key,
     type: "stage",
     position: { x: coordinates[i][0], y: coordinates[i][1] },
@@ -365,6 +381,12 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       unit: key === "email" ? "messages read" : "records",
     },
   })), [run?.id, visibleSteps]);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  useEffect(() => {
+    // Preserve React Flow's measured dimensions across polled status updates.
+    // Replacing unmeasured node objects can leave a running graph invisible.
+    setNodes(previous => nodeUpdates.map(node => ({ ...previous.find(item => item.id === node.id), ...node })));
+  }, [nodeUpdates, setNodes]);
   const edges = useMemo(() => links
     .map(([source, target]) => ({
       id: `${source}-${target}`,
@@ -396,6 +418,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
           <button onClick={() => location.reload()}>Reload view</button>
         </div>
       )}
+      {run?.summary?.execution_mode && <p className="fine-print">Data mode: {run.summary.execution_mode.replaceAll("_", " ")}{run.summary.execution_mode.startsWith("controlled") ? " · Explicit synthetic assessment inputs; no live-provider processing claim." : " · Actual external source reads; no fixture fallback."}</p>}
       {view === "workspace" && (
         <>
           {loadingRuns && <p role="status">Loading tool configuration…</p>}
@@ -462,6 +485,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
         <section className="panel execution-list">
           <div className="result-toolbar">
             <h2>Saved executions</h2>
+            {view === "history" && runId && <button onClick={() => navigate("/history")}>Close execution</button>}
             <button
               onClick={() =>
                 api
@@ -525,6 +549,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
                 <ReactFlow
                   onInit={setFlow}
                   nodes={nodes}
+                  onNodesChange={onNodesChange}
                   edges={edges}
                   nodeTypes={nodeTypes}
                   onNodeClick={(_, node) => selectStage(node.id)}
@@ -532,10 +557,10 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
                   nodesDraggable={false}
                   nodesConnectable={false}
                   edgesFocusable={false}
-                  minZoom={0.4}
+                  minZoom={0.15}
                   maxZoom={1.5}
                   proOptions={{ hideAttribution: true }}
-                />
+                ><FitExecutionGraph /></ReactFlow>
               </div>
               <div
                 className="flow-accessible"

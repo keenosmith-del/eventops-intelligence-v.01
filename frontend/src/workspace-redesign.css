@@ -58,13 +58,11 @@
 .app-shell.is-collapsed .new-chat, .app-shell.is-collapsed .sidebar-setting { padding: 10px; justify-content: center; }
 .app-shell .collapse-control, .app-shell .new-chat { position: relative; }
 .app-shell .rail-tooltip { position: absolute; left: calc(100% + 14px); top: 50%; transform: translateY(-50%); background: rgb(255 254 250 / 90%); color: var(--ws-ink); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 4px 18px rgb(63 55 45 / 8%); font-size: 12px; padding: 8px 13px; white-space: nowrap; border-radius: 14px; opacity: 0; visibility: hidden; pointer-events: none; z-index: 50; }
-.app-shell :is(.nav-item, .sidebar-setting, .collapse-control, .new-chat):is(:hover, :focus) > .rail-tooltip { opacity: 1; visibility: visible; }
+.app-shell .rail-tooltip.is-visible { opacity: 1; visibility: visible; }
 .app-shell .main { min-width: 0; flex: 1; padding: 0; display: flex; flex-direction: column; }
 .app-shell .topbar { min-height: 72px; height: auto; display: flex; align-items: center; justify-content: flex-start; gap: 16px; border: 0; margin: 0; padding: 20px 36px; color: var(--ws-muted); font-size: 13px; }
 .app-shell .mobile-nav-toggle { display: none; }
 .app-shell .unified-content { margin: 0 auto; width: 100%; max-width: 1500px; padding: 24px 36px 36px; flex: 1; }
-.app-shell .workspace-footer { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 0 20px 18px; color: var(--ws-muted); font-size: 9px; font-weight: 400; line-height: 1.35; text-align: center; flex-shrink: 0; }
-.app-shell .workspace-footer span { display: flex; align-items: center; justify-content: center; gap: 5px; }
 .app-shell .shell-notice { margin: 0 36px 12px; font-size: 13px; }
 .app-shell .page-intro { margin-bottom: 30px; }
 .app-shell .page-intro h1 { font-size: 34px; font-weight: 400; letter-spacing: -1.2px; line-height: 1.2; margin-bottom: 12px; }
@@ -201,7 +199,7 @@
   .app-shell .sidebar { gap: 8px; padding-top: 16px; padding-bottom: 12px; }
   .app-shell .nav-item { min-height: 36px; padding-top: 8px; padding-bottom: 8px; }
 }
-@media (max-width: 760px) {
+@media (max-width: 1024px) {
   .app-shell { display: block; }
   .app-shell .sidebar { position: fixed; left: 0; top: 0; width: 280px; max-width: 88vw; height: 100svh; transform: translateX(-100%); transition: transform 180ms ease; z-index: 70; }
   .app-shell.drawer-open .sidebar { transform: translateX(0); }
@@ -256,7 +254,22 @@
 .app-shell .analysis-columns dl > div { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 8px; }
 .app-shell .analysis-columns dt { overflow-wrap: anywhere; }
 .app-shell .analysis-columns dd { margin: 0; }
-@media (max-width: 760px) { .app-shell .analysis-columns { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
+@media (max-width: 1024px) { .app-shell .analysis-columns { grid-template-columns: minmax(0, 1fr); gap: 6px; } }
 @media (prefers-reduced-motion: reduce) {
   .app-shell .stage-running-icon, .app-shell .react-flow__edge.animated path { animation: none; }
 }
+
+/* Focused interaction refinements. */
+.app-shell .sidebar-identity a { display: flex; border-radius: 50%; }
+.app-shell .mobile-nav-toggle { padding: 0; width: 36px; height: 36px; }
+.app-shell .mobile-nav-toggle img { width: 36px; height: 36px; object-fit: contain; }
+.app-shell .run-controls :is(select, input) { padding: 7px 12px; border: 0; border-radius: 999px; background: #eeeee8; font-size: 13px; }
+.app-shell .run-controls :is(select, input):focus { outline: none; box-shadow: none; }
+.app-shell .run-controls :is(select, input):focus-visible { outline: 1px solid #89958a; outline-offset: 2px; }
+.app-shell .run-controls .primary { padding: 9px 18px; transition: transform 180ms ease, background-color 180ms ease; }
+.app-shell .run-controls .primary:hover:not(:disabled) { background: #2d3638; transform: translateY(-2px); }
+.app-shell .run-controls .primary:active:not(:disabled) { transform: translateY(0); }
+.app-shell .record-detail { scroll-margin-top: 24px; }
+.app-shell .example-questions { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin: 20px auto 0; max-width: 620px; }
+.app-shell .example-questions button { background: #edeee8; color: var(--ws-muted); padding: 8px 13px; font-size: 12px; line-height: 1.4; }
+@media (prefers-reduced-motion: reduce) { .app-shell .run-controls .primary { transition: none; } }

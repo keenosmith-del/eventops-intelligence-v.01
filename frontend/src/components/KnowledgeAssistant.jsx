@@ -107,6 +107,9 @@ export default function KnowledgeAssistant({ id }) {
         <div className={`mascot-presence ${busy ? "is-thinking" : ""}`}><img className="chat-mascot" src="/mascot-thinking.png" alt="EventOps assistant" /></div>
         <h1>What would you like to know?</h1>
         <p>Ask about event details, policies, registrations or participants.</p>
+        <div className="example-questions" aria-label="Example questions">
+          {["Where is EVT-101 being held?", "What time does check-in close for EVT-101?", "Who is registered for EVT-101?"].map(example => <button key={example} type="button" disabled={busy || loading} onClick={() => { setQuestion(example); textarea.current?.focus(); }}>{example}</button>)}
+        </div>
       </section>}
       {!empty && <div className="conversation-heading"><span>{conversation?.title || "Conversation"}</span>{!evidenceOpen && <button onClick={() => setEvidenceOpen(true)}>Evidence & context</button>}</div>}
       {!empty && <div className="exchanges">{exchanges.map(exchange => <Exchange key={exchange.question.id} exchange={exchange} status={statuses[exchange.retrieval?.id]} compact onInspect={() => { setSelected(exchange.question.id); setTab("evidence"); setEvidenceOpen(true); }} />)}<div ref={end} /></div>}

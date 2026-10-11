@@ -278,8 +278,22 @@ test("real API: create, retrieve, follow up, restore original wording and source
       response.request().method() === "POST",
   );
   await page.getByRole("button", { name: "Ask question" }).click();
-  const exchange = await (await exchangeResponse).json();
-  expect(exchange.generation_status).toBe("unavailable");
+  const response = await exchangeResponse;
+  let exchange = await response.json();
+  if (response.status() === 429) {
+    expect(exchange.detail).toContain("budget");
+    await expect(page.getByRole("alert")).toContainText("budget");
+    await page.getByLabel("Request Gemini answer").uncheck();
+    const retry = page.waitForResponse(r => r.url().endsWith(`/conversations/${realId}/messages`) && r.request().method() === "POST");
+    await page.getByRole("button", { name: "Ask question" }).click();
+    const retried = await retry;
+    expect(retried.status()).toBe(200);
+    exchange = await retried.json();
+    expect(exchange.generation_status).toBe("not_requested");
+  } else {
+    expect(response.status()).toBe(200);
+    expect(exchange.generation_status).toBe("unavailable");
+  }
   console.log(`LIVE_GENERATION_STATUS=${exchange.generation_status}`);
   await expect(
     page.getByText("Context carried forward: EVT-101.", { exact: false }),
@@ -465,11 +479,11 @@ test("frosted rail tooltips, shared credits and reviewer session exit", async ({
   await fixtureApi(page);
   await page.goto("/workspace");
   const footer = page.getByRole("contentinfo", { name: "Application credits" });
-  await expect(footer.locator("span").first()).toHaveText("Designed & Engineering by Keeno Smith");
-  await expect(footer.locator("span").last()).toHaveText("October 2026 (c) EventOps Intelligence v.01");
-  await expect(footer.locator("svg")).toHaveCount(1);
+  await expect(footer).toHaveText("October 2026 © EventOps Intelligence v.01");
+  await expect(footer.locator("svg")).toHaveCount(0);
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
   await expect(page.getByRole("button", { name: "Expand sidebar" }).locator("svg")).toHaveClass(/lucide-arrow-right/);
+  await page.keyboard.press("Tab");
   for (const name of ["Knowledge assistant", "Agent workspace", "Verification results", "Execution history", "Knowledge sources"]) {
     await page.getByRole("link", { name, exact: true }).focus();
     await expect(page.getByRole("tooltip", { name, exact: true })).toBeVisible();
@@ -484,4 +498,90 @@ test("frosted rail tooltips, shared credits and reviewer session exit", async ({
   await expect(page).toHaveURL(/\/signin$/);
   expect(await page.evaluate(() => sessionStorage.getItem("eventops-demo-token"))).toBeNull();
   await expect(page.getByRole("button", { name: "Enter workspace" })).toBeVisible();
+});
+
+
+test("sidebar tooltips dismiss on leave, every click and navigation", async ({ page }) => {
+  await fixtureApi(page);
+  await page.route("**/api/agents/**", route => route.fulfill({ json: [] }));
+  await page.goto("/workspace");
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  const agent = page.getByRole("link", { name: "Agent workspace", exact: true });
+  const knowledge = page.getByRole("link", { name: "Knowledge assistant", exact: true });
+  const tips = page.locator(".rail-tooltip:visible");
+  await agent.hover();
+  await expect(tips).toHaveCount(1);
+  await knowledge.hover();
+  await expect(tips).toHaveCount(1);
+  await expect(tips).toHaveText("Knowledge assistant");
+  await page.locator("main").hover();
+  await expect(tips).toHaveCount(0);
+  await knowledge.hover();
+  await knowledge.click();
+  await expect(tips).toHaveCount(0);
+  await page.locator("main").hover();
+  await knowledge.hover();
+  await page.locator("main").click({ position: { x: 400, y: 10 } });
+  await expect(tips).toHaveCount(0);
+  await knowledge.hover();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(tips).toHaveCount(0);
+  await agent.hover();
+  await agent.click();
+  await expect(page).toHaveURL(/\/agents$/);
+  await expect(tips).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Agent workspace", exact: true })).toBeVisible();
+  await knowledge.focus();
+  await page.keyboard.press("Tab");
+  await expect(agent).toBeFocused();
+  await expect(tips).toHaveText("Agent workspace");
+  await page.keyboard.press("Escape");
+  await expect(tips).toHaveCount(0);
+});
+
+
+test("shared footer, collapsed-only hints, outside settings dismissal and examples", async ({ page }) => {
+  await fixtureApi(page);
+  let footerStyle;
+  for (const path of ["/", "/signin", "/workspace"]) {
+    await page.goto(path);
+    const footer = page.getByRole("contentinfo", { name: "Application credits" });
+    await expect(footer).toHaveText("October 2026 © EventOps Intelligence v.01");
+    await expect(footer.locator("svg")).toHaveCount(0);
+    const style = await footer.evaluate(element => { const s = getComputedStyle(element); return [s.fontSize, s.fontWeight, s.lineHeight, s.color, s.fontFamily]; });
+    if (footerStyle) expect(style).toEqual(footerStyle);
+    footerStyle = style;
+  }
+  await page.getByRole("button", { name: "Settings", exact: true }).hover();
+  await expect(page.locator(".rail-tooltip:visible")).toHaveCount(0);
+  await page.getByRole("button", { name: "Leave reviewer session" }).hover();
+  await expect(page.locator(".rail-tooltip:visible")).toHaveCount(0);
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Settings", exact: true })).toBeVisible();
+  await page.getByRole("heading", { name: "What would you like to know?" }).click();
+  await expect(page.getByRole("region", { name: "Settings", exact: true })).toHaveCount(0);
+  const example = "What time does check-in close for EVT-101?";
+  await page.getByRole("button", { name: example, exact: true }).click();
+  await expect(page.getByLabel("Ask your first question")).toHaveValue(example);
+  await expect(page.getByLabel("Ask your first question")).toBeFocused();
+  await page.getByRole("button", { name: "Collapse sidebar" }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).hover();
+  await expect(page.getByRole("tooltip", { name: "Settings", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Expand sidebar" }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).hover();
+  await expect(page.locator(".rail-tooltip:visible")).toHaveCount(0);
+  await page.route("**/api/knowledge/sources", route => route.fulfill({ json: { total_records: 0, sources: [] } }));
+  await page.getByRole("link", { name: "Knowledge sources", exact: true }).click();
+  await page.getByRole("link", { name: "Return to assistant", exact: true }).click();
+  await expect(page).toHaveURL(/\/workspace$/);
+  for (const width of [390, 820]) {
+    await page.setViewportSize({ width, height: 900 });
+    const open = page.getByRole("button", { name: "Open navigation", exact: true });
+    await expect(open.locator("img")).toHaveAttribute("src", "/mascot-head.png");
+    await open.click();
+    await expect(page.getByRole("dialog", { name: "Workspace navigation" })).toBeVisible();
+    await page.getByRole("link", { name: "Return to assistant" }).click();
+    await expect(open).toHaveAttribute("aria-expanded", "false");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
 });

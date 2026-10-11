@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowRight, Brain } from "lucide-react";
+import ApplicationFooter from "./components/ApplicationFooter.jsx";
 import { api } from "./api.js";
 import KnowledgeAssistant from "./components/KnowledgeAssistant.jsx";
 import AgentWorkspace from "./components/AgentWorkspace.jsx";
@@ -24,11 +24,11 @@ export default function App() {
   const [token, setToken] = useState(() => sessionStorage.getItem("eventops-demo-token"));
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("eventops-sidebar-collapsed") === "true");
   const [drawer, setDrawer] = useState(false);
-  const [mobile, setMobile] = useState(() => window.matchMedia("(max-width: 760px)").matches);
+  const [mobile, setMobile] = useState(() => window.matchMedia("(max-width: 1024px)").matches);
   const [health, setHealth] = useState("checking");
   const navigate = useNavigate(), location = useLocation();
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 760px)");
+    const media = window.matchMedia("(max-width: 1024px)");
     const update = () => { setMobile(media.matches); setDrawer(false); };
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
@@ -69,7 +69,7 @@ export default function App() {
       }} />
       <main id="workspace" className="main" tabIndex={-1} inert={mobile && drawer}>
         <header className="topbar">
-          <button className="mobile-nav-toggle icon-button" aria-label="Open navigation" aria-expanded={drawer} onClick={() => setDrawer(true)}><ArrowRight size={20} aria-hidden="true" /></button>
+          <button className="mobile-nav-toggle icon-button" aria-label="Open navigation" aria-expanded={drawer} onClick={() => setDrawer(true)}><img src="/mascot-head.png" alt="" /></button>
           <span>{pageName}</span>
         </header>
         {health === "offline" && <div className="notice shell-notice" role="status">Connection unavailable. <button onClick={check}>Retry connection</button></div>}
@@ -107,10 +107,7 @@ export default function App() {
             />
           </Routes>
         </div>
-        <footer className="workspace-footer" role="contentinfo" aria-label="Application credits">
-          <span><Brain size={12} strokeWidth={1.3} aria-hidden="true" />Designed &amp; Engineering by Keeno Smith</span>
-          <span>October 2026 (c) EventOps Intelligence v.01</span>
-        </footer>
+        <ApplicationFooter />
       </main>
     </div>
   );

@@ -91,6 +91,7 @@ def test_live_controlled_mailtrap_registration_persists(monkeypatch):
         run_id,
         "EVT-101",
         1,
+        execution_mode="real_mailtrap_read_only_probe",
         adapters={
             "calendar": not_requested,
             "email": lambda limit: payload,

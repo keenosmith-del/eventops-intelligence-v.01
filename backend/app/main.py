@@ -1,14 +1,14 @@
 import os
-from pathlib import Path
-
-from dotenv import load_dotenv
+from contextlib import asynccontextmanager
+from app.core.environment import load_local_environment, validate_production_environment
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import TypeAdapter, ValidationError
 from starlette.concurrency import run_in_threadpool
 
-load_dotenv(Path(__file__).resolve().parents[2] / ".env", override=False)
+load_local_environment()
+validate_production_environment()
 
 from app.api.agents import router as agents_router
 from app.api.conversations import router as conversations_router
@@ -25,10 +25,25 @@ from app.core.demo import (
     router as demo_router,
 )
 
+@asynccontextmanager
+async def lifespan(app):
+    if os.getenv("APP_ENV") == "production":
+        from app.api.rag import get_embedding_model
+        try:
+            await run_in_threadpool(lambda: get_embedding_model().embed_query("EventOps readiness"))
+        except Exception:
+            raise RuntimeError("Embedding model initialization failed; service is not ready.") from None
+    yield
+
+
 app = FastAPI(
     title="EventOps Intelligence API",
     description="Evidence-grounded event operations and bounded verification tooling.",
     version="0.1.0",
+    lifespan=lifespan,
+    docs_url=None if os.getenv("APP_ENV") == "production" else "/docs",
+    redoc_url=None if os.getenv("APP_ENV") == "production" else "/redoc",
+    openapi_url=None if os.getenv("APP_ENV") == "production" else "/openapi.json",
 )
 for router in [
     rag_router,
@@ -128,3 +143,20 @@ if origins:
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "service": "eventops-intelligence-api"}
+
+
+@app.get("/ready")
+def readiness_check():
+    from app.core.database import connect_db
+    try:
+        with connect_db() as connection, connection.cursor() as cursor:
+            cursor.execute("SELECT 1 FROM schema_migrations WHERE name='004_n8n_triggers.sql'")
+            if not cursor.fetchone():
+                raise ValueError
+            cursor.execute("SELECT COUNT(*), COUNT(embedding), COUNT(DISTINCT document_id) FROM knowledge_records")
+            records, embeddings, documents = cursor.fetchone()
+            if records < 19 or embeddings != records or documents < 3:
+                raise ValueError
+        return {"status": "ready"}
+    except Exception:
+        return JSONResponse({"status": "unavailable"}, status_code=503)

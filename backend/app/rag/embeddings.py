@@ -27,7 +27,7 @@ class LocalEmbeddingModel:
         ):
             raise ValueError("Documents must contain non-empty text")
 
-        vectors = list(self._model.passage_embed(texts))
+        vectors = list(self._model.passage_embed(texts, batch_size=4))
         return self._validate_vectors(
             vectors,
             expected_count=len(texts),

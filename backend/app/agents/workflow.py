@@ -16,6 +16,7 @@ class State(TypedDict, total=False):
     records: list
     results: list
     tool_outcomes: dict
+    execution_mode: str
 
 
 def graph_for(*, adapters=None):
@@ -38,7 +39,7 @@ def graph_for(*, adapters=None):
             state["run_id"],
             "trigger",
             "completed",
-            outputs={"mode": "real_https_read_only", "orchestrator": "LangGraph"},
+            outputs={"mode": state["execution_mode"], "orchestrator": "LangGraph"},
         )
         return {"sources": {}, "tool_outcomes": {}}
 
@@ -174,7 +175,7 @@ def graph_for(*, adapters=None):
             state["run_id"],
             status,
             results=state["results"],
-            summary={**pipeline.summary(state["results"]), "tools": outcomes},
+            summary={**pipeline.summary(state["results"]), "tools": outcomes, "execution_mode": state["execution_mode"]},
             error="No tool source was available." if status == "failed" else None,
             persistence_outputs={"storage": "PostgreSQL", "record_count": len(state["results"])},
         )
@@ -200,10 +201,11 @@ def graph_for(*, adapters=None):
     return graph.compile()
 
 
-def execute(run_id, event_id, limit, *, adapters=None):
+def execute(run_id, event_id, limit, *, adapters=None, execution_mode=None):
     try:
         graph_for(adapters=adapters).invoke(
-            {"run_id": str(run_id), "event_id": event_id, "limit": limit},
+            {"run_id": str(run_id), "event_id": event_id, "limit": limit,
+             "execution_mode": execution_mode or ("controlled_adapter_test" if adapters is not None else "real_https_read_only")},
             config={"recursion_limit": 16},
         )
     except Exception:

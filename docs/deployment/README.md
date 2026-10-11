@@ -1,92 +1,131 @@
-# Deployment — EventOps Intelligence v.01
+# EventOps deployment
 
-Status: configuration and local production-profile verification are implemented. **No public deployment or URL has been created.** Provider accounts, credentials and plan limits must be configured by the owner. v.02 is out of scope.
+Preparation verified **11 October 2026 (Africa/Johannesburg)**. Public deployment is **blocked at Neon account authorization**. No EventOps cloud resources or verified public URLs exist. See [deployment evidence](DEPLOYMENT_STATUS.md) and the [release checklist](PRODUCTION_CHECKLIST.md).
 
-## Supported assessment topology
+## Architecture and isolation
 
-- React/Vite static site on Render Static Sites (or another static host).
-- FastAPI Python web service on Render's **Free** plan, one worker.
-- External persistent PostgreSQL with pgvector, for example a **Neon Free** project.
-- Optional Gemini, disabled initially.
-- Public remote iCalendar feed + HTTPS reference API; optional Mailtrap **Email Testing sandbox** read integration.
+| Component | Local development | Public assessment deployment |
+| --- | --- | --- |
+| React/Vite | 127.0.0.1:5173, npm run dev, existing proxy | Render Static Site, frontend/dist, public HTTPS API |
+| FastAPI | 127.0.0.1:5050, existing reload command | Render Free Python service, Python 3.12.15, one worker, 0.0.0.0:$PORT |
+| PostgreSQL | Docker PostgreSQL 17/pgvector, 127.0.0.1:55432, existing volume | Independent Neon Free project, PostgreSQL 17, TLS and pgvector |
+| Configuration | Ignored root .env, existing credentials | Separate Render environment; production never reads developer dotenv files |
+| Durable data | Local PostgreSQL | Neon knowledge/embeddings, conversations, sessions/ownership/quotas, runs/steps/results, n8n ledger |
+| Model cache | Existing developer cache | /tmp/eventops-models, disposable and re-downloadable |
 
-`render.yaml` defines a Free Python service and a static site. It creates **no paid service, database or provider account**. Configure placeholder environment entries in the dashboard before deployment. It cannot independently verify billing settings or guarantee quotas will remain available.
+The approved UI and routes are unchanged. No local service requires Neon or Render. No production secret belongs in Vite, GitHub Actions or committed files. No local conversations, credentials or test executions are copied to production. Runtime uploads are not implemented; there is no filesystem upload store to migrate.
 
-Provider constraints, checked 10 October 2026: [Render Free documentation](https://render.com/docs/free) describes idle spin-down, ephemeral filesystems and outbound SMTP restrictions. Free Render PostgreSQL expires after 30 days, so it is not the recommended durable assessment database. [Neon plan documentation](https://neon.com/docs/introduction/free-tier) describes the Free plan; [Neon's pgvector documentation](https://neon.com/docs/extensions/pgvector) documents enabling the extension. Reconfirm plan limits in the account dashboard, do not enable automatic upgrades, and use a no-payment-method or hard spending-limit setup where supported.
+## Exact account setup and deployment fields
 
-## Exact owner actions
+1. Complete **Neon Console** GitHub authorization in the pending Chrome tab. It requests read-only email addresses. The computer-use policy requires the owner to approve the new grant. Complete any signup terms yourself. Create an independent **Free** project, suggested name `eventops-intelligence-production`, select PostgreSQL **17** and a production database/role. Do not choose a trial, upgrade, attach payment information or reuse unrelated data. Verify current Free quotas; stop if free provisioning is unavailable.
+2. Obtain a TLS PostgreSQL URL from Neon Connection Details. Prefer the **direct endpoint** for this small single-worker service and serialized migration transactions. Paste it only into Render's secure `DATABASE_URL` field. The role needs permission to create the vector extension/tables. Keep backups/exports secure; inspect the actual project's Free recovery retention before relying on it.
+3. Review and intentionally commit/push the complete working v.01 implementation and deployment changes to GitHub **main**. Existing uncommitted Part 2 code/tests/n8n documentation are required for the tested implementation. Pushing only a subset can change behavior or fail CI. Git SSH access works; the separate gh token is invalid. Use normal Git SSH, or `gh auth login -h github.com` for CLI API operations. No commit/push was made by this task.
+4. Render is already signed in and its existing GitHub integration lists **keenosmith-del/eventops-intelligence-v.01**. Use New → Blueprint → the connected repository, branch main, path render.yaml. Do not use the public-repository URL fallback: it does not provide automatic deployment. The draft form was inspected but not submitted; reload after pushing the prepared YAML.
+5. The updated Blueprint creates only a **Free Python web service** and a **static site**: no database, disk or paid service. Supply DATABASE_URL, FRONTEND_ORIGINS and VITE_API_BASE_URL. Optional Gemini/Mailtrap keys are absent from mandatory prompts; add later to backend Environment only when intended. Verify the actual plans and workspace spending controls before final submission. New security grants/public provisioning require action-time confirmation under the computer-use policy.
+6. Backend: root directory **blank** (whole repository), build `pip install -r backend/requirements.lock.txt`, start `bash scripts/start-backend.sh`, health-check `/ready`, branch main, **After CI Checks Pass**. A backend-only root excludes required data/migrations/scripts.
+7. Frontend: root directory **blank**, build `bash scripts/build-frontend.sh`, publish `frontend/dist`, Node **24**, branch main, **After CI Checks Pass**. SPA rewrite `/* → /index.html` is included.
+8. Set the actual assigned HTTPS frontend origin in FRONTEND_ORIGINS and HTTPS backend origin in VITE_API_BASE_URL. No wildcard, credentials or URL paths. If assigned hostnames contain suffixes, update both and redeploy/rebuild. The frontend hosted build refuses a missing/invalid API URL; backend production refuses missing/insecure configuration.
+9. Wait for CI and both deployments, perform the hosted checklist, then record actual verified URLs in root README/status. A Render Live badge is insufficient.
 
-1. Review these changes, then commit/push **manually** to the v.01 repository. Nothing is committed or pushed automatically.
-2. Create/select a **Free** PostgreSQL project supporting pgvector. Obtain its connection URL with `sslmode=require`. Do not paste it into a browser-side env variable or chat. The role must be allowed to create the vector extension and tables.
-3. Import `render.yaml` as a Blueprint, or create equivalent services manually. Keep the backend on **Free**, Python 3.12, single worker. Set these backend variables:
+Official references checked 11 October 2026: [Blueprint specification](https://render.com/docs/blueprint-spec), [CI-based deployments](https://render.com/docs/deploys), [Render Free constraints](https://render.com/docs/free), [Neon Free plan](https://neon.com/docs/introduction/free-tier), [Neon pgvector](https://neon.com/docs/extensions/pgvector). Current account plan/billing screens govern provisioning. Free Render PostgreSQL expires and is not used; Neon holds independent durable data.
 
-   ```text
-   APP_ENV=production
-   DATABASE_URL=<provider PostgreSQL URL with sslmode=require>
-   POSTGRES_SSLMODE=require
-   DEMO_MODE=true
-   FRONTEND_ORIGINS=https://<exact static-site hostname>
-   GEMINI_ENABLED=false
-   EMBEDDING_THREADS=1
-   FASTEMBED_CACHE_PATH=/tmp/eventops-models
-   LANGSMITH_TRACING=false
-   ```
+## Environment inventory (no secret values)
 
-4. Set the frontend build variable `VITE_API_BASE_URL=https://<API hostname>`. Rebuild the static frontend after changing it. The static build command is `npm --prefix frontend ci && npm --prefix frontend run build`, publish directory `frontend/dist`. Add a SPA rewrite `/* → /index.html`; the Blueprint supplies it.
-5. Redeploy the backend once the exact frontend URL is known. CORS accepts only configured origins, GET/POST and the `Content-Type`/`X-Demo-Session` headers. Public mode refuses to start without an explicit origin; production refuses to start with demo isolation disabled.
-6. Backend build: `pip install -r backend/requirements.lock.txt`. Start: `bash scripts/start-backend.sh`. The script runs transactional numbered migrations, indexes the three authoritative source files, then binds Uvicorn to `0.0.0.0:$PORT`. It does not need Docker at runtime. Deploy the **whole repository** so `data/structured/` and SQL migrations exist.
-7. Verify `/health`, open `/signin`, continue as reviewer and run both walkthroughs. Confirm cross-origin access, conversation/run isolation, POL-003 evidence, CSV download and persistence after restarting the service. These final hosted checks have **not** been executed locally.
-8. To activate the third tool, configure a dedicated Mailtrap Email Testing sandbox containing only synthetic assessment registrations:
+| Variables | Location / purpose |
+| --- | --- |
+| POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_HOST, POSTGRES_PORT | Local root .env; retain Docker credentials/port 55432 |
+| APP_ENV | Backend hosting: production activates dotenv isolation, TLS/origin guards, model warm-up and disables Swagger/OpenAPI pages; omit locally |
+| DATABASE_URL, POSTGRES_SSLMODE | Backend production only: dedicated Neon URL and required TLS |
+| DEMO_MODE, FRONTEND_ORIGINS | Backend production demo access and exact HTTPS origins; retain local defaults |
+| DEMO_SESSION_LIMIT, DEMO_REQUEST_LIMIT, DEMO_WRITE_LIMIT, AGENT_DAILY_RUN_LIMIT | Backend PostgreSQL daily budgets; existing bounded defaults in Blueprint |
+| GEMINI_ENABLED, GEMINI_API_KEY, GEMINI_DAILY_LIMIT | Backend only; disabled initially/in CI, separately approved production project/key |
+| MAILTRAP_API_TOKEN, MAILTRAP_ACCOUNT_ID, MAILTRAP_INBOX_ID | Optional backend-only production sandbox, synthetic data, HTTPS read only |
+| CALENDAR_FEED_URL, WEB_SOURCE_URL | Backend-only validated public HTTPS sources; cannot be chosen in reviewer requests |
+| EMBEDDING_THREADS, FASTEMBED_CACHE_PATH, TOKENIZERS_PARALLELISM | Backend resource controls; one thread, disposable cache; startup disables tokenizer parallelism |
+| LANGSMITH_TRACING | Disabled; external tracing not required |
+| N8N_SERVICE_TOKEN, N8N_DAILY_RUN_LIMIT | Optional backend service integration; absent by default, independent of reviewer tokens |
+| VITE_API_BASE_URL | Public frontend build setting only; empty locally for existing proxy |
+| API_PROXY_TARGET | Optional local proxy override; default remains port 5050 |
+| PYTHON_VERSION, NODE_VERSION, PORT, RENDER_GIT_COMMIT | Hosting/runtime; Render supplies port/release SHA |
+| TEST_PREVIEW, TEST_PREVIEW_PORT, TEST_BASE_URL, PLAYWRIGHT_CHANNEL, RUN_LIVE_API, RUN_LIVE_ENTRY, RUN_MAILTRAP_LIVE | Test controls only; CI uses built frontend/fixtures with live opt-ins disabled |
 
-   ```text
-   MAILTRAP_API_TOKEN=<sandbox read token>
-   MAILTRAP_ACCOUNT_ID=<numeric account ID>
-   MAILTRAP_INBOX_ID=<numeric inbox ID>
-   ```
+Provider environment settings survive code releases. sync:false entries are supplied securely rather than committed. Vite changes require a rebuild; backend environment changes require redeployment. Avoid Blueprint edits that overwrite intentionally configured production options. Generation remains disabled until an independently free/unbilled project is approved; no automated check calls Gemini. Do not copy local provider secrets automatically.
 
-   Use [Mailtrap's messages API](https://docs.mailtrap.io/developers/email-sandbox/messages/get-messages) and [plain-text body API](https://docs.mailtrap.io/developers/email-sandbox/messages/get-text-message). A configured token alone is not evidence of a working connection: run verification, inspect the Email step and its provenance, and confirm actual body extraction. Until this is done, Part 2 has **two live connected tool categories, not three**.
-9. Optionally configure synthetic EVT-specific HTTPS Calendar/Web sources. The public default sources are genuine holiday data unrelated to the fictional EVT dataset; their missing event IDs are correctly flagged. For an event/registration verification demo, publish your synthetic feed/reference records at public HTTPS URLs, then set `CALENDAR_FEED_URL` and `WEB_SOURCE_URL`. No URL can be supplied through the public run endpoint.
-10. Only after verifying a Gemini project's free/unbilled configuration, manually set its server-side key and `GEMINI_ENABLED=true` for a controlled demonstration. Default `GEMINI_DAILY_LIMIT=10` applies in public demo mode. **Never enable it for automated regression/smoke runs.** Prior backend live generation is documented separately; no new live Gemini request was made during this work.
-11. Record the actual public URLs and fresh screenshots/recordings in `docs/submission/`. An actual local screenshot set and CSV sample are present; a recording is not yet present.
+## Database initialization and updates
 
-## Demo access and request controls
+Startup validates configuration, runs `python -m app.core.migrate`, runs `python -m app.rag.indexing`, then starts Uvicorn. Migrations 001–004 run transactionally under a PostgreSQL advisory lock and schema_migrations ledger. They create vector/vector(384), knowledge indexes, conversations/messages, sessions/ownership/budgets, agent runs/steps and the n8n delivery ledger. No reset is required.
 
-`Continue as reviewer` creates an anonymous 24-hour demonstration token, stored in the browser tab's session storage and hashed in PostgreSQL. It is **not account authentication** or proof of identity. Public mode restricts conversation and execution objects to their creating token; prior unowned local objects are not publicly listed or accessible. Knowledge documents are deliberately synthetic and shared. Tokens travel in `X-Demo-Session`, avoiding reliance on cross-site cookies. Leaving/replacing the session removes the tab's token; it does not grant another reviewer access to old objects.
+Indexing reads only events.csv, policies.csv and directory.json: **19 records/19 embeddings**. Identity/fingerprint upserts regenerate only new/changed content. Repeated initialization produced zero changes/zero pending embeddings and preserved unrelated state. The model remains **BAAI/bge-small-en-v1.5**, 384 dimensions; no replacement or schema change was made.
 
-Durable PostgreSQL daily counters bound session creation (100), requests per session (2000), all public writes (100), agent runs (30) and Gemini-generation requests (10). Defaults are configurable with server-side `DEMO_*`, `AGENT_DAILY_RUN_LIMIT` and `GEMINI_DAILY_LIMIT`. At most two recent agent runs are admitted using a PostgreSQL advisory lock. Request bodies are limited to 16 KB; source reads to 512 KB, tool timeouts to 12 seconds, records to 30 per source, emails to at most 3. No automatic retry, model fallback, email send endpoint or paid infrastructure activation exists.
+Add new numbered additive SQL for future changes. Never edit applied migrations, delete the ledger, drop tables or reset hosted data. Keep changes compatible with the previously live release, because startup migrations precede traffic switching. Back up securely before changes. Inspect sanitized logs and fix forward after failure; source updates intentionally refresh affected embeddings without clearing reviewer history.
 
-These controls are appropriate for a synthetic public assessment, not production identity or confidential data access. Global budgets can be exhausted by an anonymous visitor; commercial service would need genuine authentication, tenant ownership and stronger abuse protection. Database backups, retention and rotation are owner responsibilities.
+Verify through the Neon SQL editor without displaying connection credentials:
 
-## Agent execution reliability
-
-Runs and every step transition are persisted in PostgreSQL. FastAPI BackgroundTasks executes one bounded LangGraph workflow after returning a stable run ID. It is **not a durable job queue**: if the process dies, that run does not resume. A later run-list/detail request marks executions older than ten minutes failed, retaining completed evidence and explicit interruption state. Start a fresh run rather than treating an interrupted run as successful. Free-service idle/restart behavior must be assessed on the actual host.
-
-CSV export comes from persisted results, includes discrepancies/provenance and neutralizes spreadsheet formula prefixes. `verified_only=true` exports only genuinely verified rows; a zero-verified run produces a header-only CSV. An export step is completed only after the server generates a CSV response; the UI then initiates download. There are no fabricated completion records.
-
-## Cold starts, cache and memory
-
-FastEmbed is lazy and cached once per serving process. The startup indexing process downloads the model if needed; unchanged records do not re-embed. `FASTEMBED_CACHE_PATH` must be writable. A Free host's `/tmp` is ephemeral, so cold redeploys may download again. No external database or provider call is required for `/health`, but startup must complete migrations/indexing before Uvicorn serves.
-
-Use one Uvicorn worker and one embedding thread. Installed dependencies and local fresh-database indexing are verified; **hosted cold-start latency and peak memory on the Free service remain unverified**. Do not assume a local RSS reading proves a hosted memory ceiling. If the host fails to start due to memory, capture the logs and evaluate a free-capable host with sufficient memory; do not silently upgrade to paid compute. The frontend allows bounded request waits and reports timeout without pretending the server stopped working.
-
-## Local production-profile probe
-
-```bash
-cd backend
-source .venv/bin/activate
-python -m app.core.migrate
-DEMO_MODE=true FRONTEND_ORIGINS=http://127.0.0.1:4173 GEMINI_ENABLED=false \
-  python -m uvicorn app.main:app --host 127.0.0.1 --port 5052
+```sql
+SELECT extversion FROM pg_extension WHERE extname = 'vector';
+SELECT name FROM schema_migrations ORDER BY name;
+SELECT COUNT(*) AS records, COUNT(embedding) AS embeddings,
+       COUNT(DISTINCT document_id) AS documents FROM knowledge_records;
+SELECT DISTINCT vector_dims(embedding) FROM knowledge_records WHERE embedding IS NOT NULL;
+SELECT indexname FROM pg_indexes WHERE schemaname = 'public' ORDER BY indexname;
 ```
 
-In another terminal:
+Expected baseline: four migrations, 19 records/embeddings, three documents, dimensions 384. Exact pgvector retrieval suits 19 records; an ANN index is not required. Never dump reviewer tokens/conversations into deployment logs.
+
+## Automatic updates
+
+Local edits → intentional commit/push to main → **Deployment checks** GitHub Actions → Render checksPass → frontend/backend releases. CI installs locked dependencies on Linux and runs pip check, initializes disposable PostgreSQL/pgvector, repeats migrations/indexing, runs backend tests, builds the frontend with a non-secret test API origin, runs unit tests and tests the production build in the browser with explicit fixtures. No production database, Gemini, Mailtrap or hosting credentials enter CI.
+
+Both services follow main without path filters. Failed CI prevents automatic deployment once configured; this still needs hosted verification. Render can count neutral/skipped external checks as passed, so these CI jobs run on each main push without path skips. Check CI yourself before the first manual Blueprint deployment. The workflow/gate are prepared locally, **not activated or demonstrated remotely**. Manual deployments/environment edits need their own review.
+
+Build/start logs identify RENDER_GIT_COMMIT. Compare the host release SHA with GitHub. Services deploy independently, so keep API changes compatible during rollout. Uncommitted edits do not reach production. Never reset the production database from CI.
+
+## Hosted smoke checks
+
+`/health` is process liveness. `/ready` checks database connectivity, migration baseline and complete indexing; it returns generic 503 on failure. Production startup loads the existing model before accepting traffic. Render uses `/ready`.
 
 ```bash
-cd frontend
-npm ci
-npm run build
-API_PROXY_TARGET=http://127.0.0.1:5052 npm run preview
-TEST_BASE_URL=http://127.0.0.1:4173 PLAYWRIGHT_CHANNEL=chrome RUN_LIVE_API=true npm run test:e2e
+backend/.venv/bin/python scripts/smoke-production.py \
+  --api https://YOUR-API.onrender.com \
+  --frontend https://YOUR-FRONTEND.onrender.com
 ```
 
-Omit the Chrome channel after installing Playwright Chromium if Chrome is unavailable. Live RAG browser regression first checks `/api/demo/config` and requires generation disabled. Only Calendar/Web HTTP reads are live; Mailtrap contract and positive verification cases use clearly identified test-only adapters/fixtures.
+The bounded probe creates synthetic reviewer/conversation data, performs real retrieval/follow-up, checks POL-003 citations and session isolation, then restores through a fresh connection. It never requests generated answers. Add `--agent` for one intentional actual Calendar/Web execution, and `--require-email` only with a configured dedicated sandbox. Tool completion, CSV rows, persisted results/history are checked. It prints IDs, never tokens/provider exception bodies. Fresh connections alone do not prove redeploy survival.
+
+Browser checks: landing/mascots, Start → reviewer → real session, five views, citations/context, individual conversation/execution routes, CSV and history. Refresh nested workspace/conversation/agents/verification/history/sources routes and inspect DevTools for JS/CORS failures. Keep the same reviewer tab, restart/redeploy backend and confirm identical evidence/results. Expired 24-hour access is not database loss. After idle spin-down, check health/readiness/source counts/retrieval. Push an intentional frontend update, check CI/release SHA/visible change and retained history. Record hosted checks only with actual URLs/timestamps/outcomes.
+
+## Integration/security limits
+
+Default Calendar/Web observations are real public holidays, unrelated to fictional EVT registrations; missing references must stay flagged. Configured variables are not connection proof. This task verified actual Calendar/Web reads locally through LangGraph. Mailtrap was disabled; earlier empty-inbox evidence cannot prove hosted connectivity/message processing. Gemini retains bounded generation/citation validation and opt-in behavior.
+
+The [inactive n8n handoff](../../automations/n8n/README.md) and protected idempotent endpoints exist. Runtime import/credentials/webhook/cloud execution are unverified. No mandatory n8n service was added; LangGraph works independently.
+
+Reviewer tokens are anonymous demo access, not commercial authentication. PostgreSQL stores token hashes, expiry/ownership and daily session/request/write/agent/Gemini quotas. Explicit CORS, request/source bounds, read-only HTTPS tools, private-address validation, no redirects, bounded reads, safe CSV and separate n8n service authorization remain active. Production disables Swagger/OpenAPI; public responses do not expose stack traces/credentials. No public admin/upload functionality was added.
+
+Render Free has idle spin-down, ephemeral files, shared quotas and SMTP restrictions; Mailtrap uses HTTPS. No persistent paid disk is needed. BackgroundTasks persists transitions/results but **cannot resume interrupted runs**; reads mark runs older than ten minutes failed. Keep completed evidence and start a fresh intentional execution if required. Actual Free plan backup retention/recovery and usage limits must be inspected.
+
+## Cold-start/memory evidence
+
+An empty cache may download the unchanged model on initial indexing or production start. /tmp holds only reproducible model files. Indexing exits before serving, first serving initialization is serialized, documents embed in batches of four, and one worker/thread is used.
+
+A clean **Linux amd64 Python 3.12.15 container constrained to 512 MB** downloaded the model and produced (19,384) documents/(384,) query after importing the real app. Peak process RSS **423,636 KiB (~414 MiB)**; download approximately 18 seconds on this connection. This is compatibility evidence, not a Render measurement/guarantee. Runtime/cgroup overhead, host networking and concurrency differ. Capture hosted cold-start/memory behavior. Investigate OOM without silently replacing the model/dimensions or enabling paid compute.
+
+## Troubleshooting, logs and recovery
+
+| Symptom | Action |
+| --- | --- |
+| Failed CI / no auto-deploy | GitHub Actions → Deployment checks; fix/push. Verify connected repo/main and After CI Checks Pass |
+| Dependency/model startup failure | Render Events/build/Logs; verify exact Python/lock, writable cache and model download access |
+| OOM | One worker/thread/bounded batches; inspect hosted evidence and discuss a verified free alternative before provider/model changes |
+| TLS/database failure | Check dedicated Neon availability, direct TLS URL and role permissions; never paste/log URL |
+| Health 200 / readiness 503 | Inspect migrations/connectivity/embeddings; liveness alone is insufficient |
+| CORS / fetch failure | Exact backend origin in frontend build and frontend origin in backend; rebuild/redeploy |
+| Nested route 404 | Static SPA rewrite /* → /index.html |
+| Reviewer 401 / hidden history | Session expiry/ownership; never weaken isolation to restore objects |
+| Partial run / Email skipped | Inspect actual step, configure sandbox if intended; empty/missing source is not successful registration ingestion |
+| n8n 401/503 | Separate service credential/configuration; reviewer token cannot authorize it |
+| ~505 KB JS build warning | Non-fatal existing bundle-size warning; no UI/code-splitting redesign introduced |
+
+Render service **Events** shows release/build failures; **Logs** shows migrations/indexing/runtime, with release SHA. GitHub Actions holds CI logs. Neon console shows project usage/availability. Keep logs/screenshots free of secrets.
+
+Rollback: temporarily disable auto-deploy and deploy the last known-good SHA using rollback/manual controls available to the actual account. Do not reset Neon: additive migrations remain applied and must support previous code. If incompatible, fix forward or restore a secure backup into a separate database after reviewing data-loss consequences. Coordinate frontend/backend rollback, re-enable checksPass and repeat smoke/persistence checks. Cloud backup/rollback capabilities were not verified in this task.

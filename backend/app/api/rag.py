@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 from dataclasses import asdict
 from functools import lru_cache
+from threading import Lock
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import Field
@@ -48,9 +49,18 @@ class RetrievalResponse(DomainModel):
     evidence: list[EvidenceResponse]
 
 
+_embedding_initialization_lock = Lock()
+
+
 @lru_cache(maxsize=1)
-def get_embedding_model() -> LocalEmbeddingModel:
+def _cached_embedding_model() -> LocalEmbeddingModel:
     return LocalEmbeddingModel()
+
+
+def get_embedding_model() -> LocalEmbeddingModel:
+    # lru_cache alone can initialize twice when concurrent first requests arrive.
+    with _embedding_initialization_lock:
+        return _cached_embedding_model()
 
 
 def get_rag_retriever() -> Iterator[PostgresSemanticRetriever]:

@@ -59,3 +59,10 @@ python -m pip check
 Verified: **184 passed**, compilation passed, no broken dependencies. Original baseline: 163 passing tests. Added tests cover parser/normalizer, verified/inactive/unregistered/ambiguous/conflicting claims, mocked tool transports/failures, graph persistence, isolation, durable budgets and CSV safety. Fresh isolated PostgreSQL migration/indexing confirmed three migrations and 19 records/embeddings. Actual HTTP Calendar/Web execution, discrepancies, CSV and recovery passed.
 
 `DATABASE_URL` supports URL-provided SSL parameters; `POSTGRES_SSLMODE` can explicitly override them and must require TLS for hosting. Model cache/thread settings are configurable. `scripts/start-backend.sh` performs migrations/indexing then binds `0.0.0.0:$PORT`, one worker. [Exact deployment actions](../docs/deployment/README.md) cover Free hosting constraints, public CORS, Mailtrap setup and outstanding hosted verification.
+
+
+## Part 2 checkpoint
+
+Persisted progress, atomic completion, additive field-level comparison data and clearly labeled synthetic/real execution modes support the integrated frontend. Backend regression: **198 passed, 1 skipped** with Gemini disabled. The separately opted-in Mailtrap probe connected but skipped processing because the sandbox remained empty.
+
+Protected n8n service endpoints and migration 004 are prepared; [configuration and runtime validation](../automations/n8n/README.md) remain required. Credentials stay server-side, reviewer authentication/session isolation remains intact, and duplicate delivery keys create only one execution. [Part 2 report](../docs/testing/PART2_EXECUTION.md) distinguishes local tests from live integrations.

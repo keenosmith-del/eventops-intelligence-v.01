@@ -18,3 +18,8 @@ The tools are deliberately executed sequentially to bound concurrency and make e
 API routes: `GET /api/agents/connections`, `POST/GET /api/agents/runs`, `GET /api/agents/runs/{uuid}`, `/results` and `/export.csv`. Inputs are event_id and max_records only; callers cannot choose arbitrary URLs. Configuration lives server-side. See [deployment guide](../../../docs/deployment/README.md).
 
 FastAPI BackgroundTasks is not a resumable queue. Interrupted runs are marked failed on read after ten minutes; restarting a worker does not replay external tools. PostgreSQL records remain auditable. Tests inject explicitly named adapters or mocked HTTPS transports; production adapters never fall back to fixtures.
+
+
+Part 2 adds actual per-source parsed counts and field comparison decisions/reference fields to saved stage/result outputs. Final persistence-step completion and terminal run status are committed atomically. Runs now record `execution_mode`: production `real_https_read_only`, explicit controlled adapters `controlled_adapter_test`, assessment fixtures `controlled_assessment_fixture`, or the bounded actual email probe `real_mailtrap_read_only_probe`. No API flag enables fixture replacement. Older runs may lack this metadata.
+
+The frontend replays saved step timestamps without invoking LangGraph. Protected service orchestration is documented in [n8n setup](../../../automations/n8n/README.md); no n8n runtime execution has been verified.

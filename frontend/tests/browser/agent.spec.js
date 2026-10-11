@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 const id = "22222222-2222-4222-8222-222222222222";
 const nodes = [
@@ -149,7 +150,7 @@ test("persisted graph, discrepancy evidence and CSV export", async ({
   const downloaded = page.waitForEvent("download");
   await page.getByRole("button", { name: "Export all CSV" }).click();
   expect((await downloaded).suggestedFilename()).toContain(id);
-  await page.getByRole("link", { name: "Execution history" }).click();
+  await page.getByRole("link", { name: "Execution history", exact: true }).click();
   await page.getByRole("button", { name: /EVT-101 · partial/ }).click();
   await expect(
     page.getByRole("heading", { name: "Execution · partial" }),
@@ -208,12 +209,13 @@ test("operational views share credits and fit mobile layouts", async ({ page }) 
   for (const path of ["/agents", `/verification/${id}`, `/history/${id}`, "/sources"]) {
     await page.goto(path);
     await expect(page.getByRole("contentinfo", { name: "Application credits" })).toBeVisible();
-    await expect(page.getByRole("contentinfo")).toContainText("October 2026 (c) EventOps Intelligence v.01");
+    await expect(page.getByRole("contentinfo")).toContainText("October 2026 © EventOps Intelligence v.01");
     await page.setViewportSize({ width: 390, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.getByRole("button", { name: "Open navigation" }).click();
+    await page.keyboard.press("Tab");
     await page.getByRole("button", { name: "Settings", exact: true }).focus();
-    await expect(page.getByRole("tooltip", { name: "Settings", exact: true })).toBeVisible();
+    await expect(page.getByRole("tooltip", { name: "Settings", exact: true })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.keyboard.press("Escape");
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -258,25 +260,41 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
   const download = await downloaded;
   expect(download.suggestedFilename()).toContain(runId);
   await download.saveAs("/tmp/eventops-redesigned-verification.csv");
+  const stored = await page.evaluate(async id => (await fetch(`/api/agents/runs/${id}`, { headers: { "X-Demo-Session": sessionStorage.getItem("eventops-demo-token") } })).json(), runId);
+  expect(stored.results.length).toBe(stored.summary.total);
+  expect(stored.results.every(record => record.checks?.length > 0)).toBe(true);
+  for (const verifiedOnly of [false, true]) {
+    const actualCsv = await page.evaluate(async ({ id, verifiedOnly }) => (await fetch(`/api/agents/runs/${id}/export.csv?verified_only=${verifiedOnly}`, { headers: { "X-Demo-Session": sessionStorage.getItem("eventops-demo-token") } })).text(), { id: runId, verifiedOnly });
+    if (!verifiedOnly) expect((await readFile("/tmp/eventops-redesigned-verification.csv", "utf8")).replace(/^\uFEFF/, "")).toBe(actualCsv.replace(/^\uFEFF/, ""));
+    else {
+      const verifiedDownload = page.waitForEvent("download");
+      await page.getByRole("button", { name: "Export verified CSV" }).click();
+      await (await verifiedDownload).saveAs("/tmp/eventops-part2-verified.csv");
+      expect((await readFile("/tmp/eventops-part2-verified.csv", "utf8")).replace(/^\uFEFF/, "")).toBe(actualCsv.replace(/^\uFEFF/, ""));
+    }
+  }
+  await expect(page.getByRole("heading", { name: "Field-level verification decisions" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Raw extracted values" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "CSV analysis" })).toContainText(`${stored.summary.total} records with missing fields`);
   await page.locator(".flow-surface").scrollIntoViewIfNeeded();
   for (const node of nodes) await expect(page.locator(`.react-flow__node[data-id="${node}"]`)).toBeVisible();
   await expect(page.locator('.react-flow__node[data-id="email"]')).toBeInViewport();
-  await page.locator(".flow-surface").screenshot({ path: "../docs/submission/workspace-redesign/phase1-graph-desktop.png" });
-  await page.screenshot({ path: "../docs/submission/workspace-redesign/phase1-agent-desktop.png", fullPage: true });
+  await page.locator(".flow-surface").screenshot({ path: "../docs/submission/workspace-redesign/part2-graph-desktop.png" });
+  await page.screenshot({ path: "../docs/submission/workspace-redesign/part2-agent-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator(".flow-surface").scrollIntoViewIfNeeded();
   for (const node of nodes) await expect(page.locator(`.react-flow__node[data-id="${node}"]`)).toBeVisible();
   await expect(page.locator('.react-flow__node[data-id="email"]')).toBeInViewport();
-  await page.locator(".flow-surface").screenshot({ path: "../docs/submission/workspace-redesign/phase1-graph-mobile.png" });
-  await page.screenshot({ path: "../docs/submission/workspace-redesign/phase1-agent-mobile.png", fullPage: true });
+  await page.locator(".flow-surface").screenshot({ path: "../docs/submission/workspace-redesign/part2-graph-mobile.png" });
+  await page.screenshot({ path: "../docs/submission/workspace-redesign/part2-agent-mobile.png", fullPage: true });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/verification/${runId}`);
   await expect(page.getByRole("button", { name: "Inspect record" }).first()).toBeVisible();
-  await page.screenshot({ path: "../docs/submission/workspace-redesign/phase1-results-desktop.png", fullPage: true });
+  await page.screenshot({ path: "../docs/submission/workspace-redesign/part2-results-desktop.png", fullPage: true });
   await page.getByRole("link", { name: "Knowledge sources" }).click();
   await expect(page.getByText("19 total records", { exact: false })).toBeVisible();
-  await page.screenshot({ path: "../docs/submission/workspace-redesign/phase1-sources-desktop.png", fullPage: true });
-  await page.getByRole("link", { name: "Execution history" }).click();
+  await page.screenshot({ path: "../docs/submission/workspace-redesign/part2-sources-desktop.png", fullPage: true });
+  await page.getByRole("link", { name: "Execution history", exact: true }).click();
   await page
     .getByRole("button", { name: new RegExp(runId.slice(0, 8)) })
     .click();
@@ -289,7 +307,7 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
   ).toBeVisible();
   console.log("LIVE_AGENT_RUN=" + runId);
   await page.screenshot({
-    path: "../docs/submission/workspace-redesign/phase1-history-desktop.png",
+    path: "../docs/submission/workspace-redesign/part2-history-desktop.png",
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -299,7 +317,83 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
     ),
   ).toBe(true);
   await page.screenshot({
-    path: "../docs/submission/workspace-redesign/phase1-history-mobile.png",
+    path: "../docs/submission/workspace-redesign/part2-history-mobile.png",
     fullPage: true,
   });
+});
+
+
+test("real polling follows persisted stages and allows manual inspection", async ({ page }) => {
+  await seed(page);
+  let stage = "calendar";
+  let finished = false;
+  const snapshot = () => ({ ...fixtureRun, status: finished ? "partial" : "running", results: finished ? fixtureRun.results : [], steps: fixtureRun.steps.map((step, index) => ({ ...step, status: finished ? step.status : index < nodes.indexOf(stage) ? "completed" : step.node_id === stage ? "running" : "pending", started_at: "2026-10-10T12:00:00Z", finished_at: finished ? "2026-10-10T12:00:01Z" : null })) });
+  await page.route(`**/api/agents/runs/${id}`, route => route.fulfill({ json: snapshot() }));
+  await page.goto(`/agents/runs/${id}`);
+  await expect(page.locator(".step-detail h2")).toHaveText("Calendar feed");
+  await expect(page.locator(".flow-stage.running")).toHaveCount(1);
+  await page.getByRole("button", { name: "Run trigger · completed", exact: true }).click();
+  stage = "email";
+  await expect(page.getByRole("button", { name: "Email sandbox · running", exact: true })).toBeVisible();
+  await expect(page.locator(".step-detail h2")).toHaveText("Run trigger");
+  await page.getByRole("button", { name: "Follow progress" }).click();
+  await expect(page.locator(".step-detail h2")).toHaveText("Email sandbox");
+  stage = "web";
+  await expect(page.locator(".step-detail h2")).toHaveText("Web reference");
+  await expect(page.locator('.react-flow__edge.animated')).toHaveCount(1);
+  finished = true;
+  await expect(page.getByRole("heading", { name: "Execution · partial" })).toBeVisible();
+  await expect(page.locator(".flow-stage.running")).toHaveCount(0);
+  await expect(page.locator('.react-flow__edge.animated')).toHaveCount(0);
+});
+
+test("recorded replay uses timestamps, pauses and never starts another run", async ({ page }) => {
+  await seed(page);
+  let requests = 0;
+  const saved = { ...fixtureRun, summary: { ...fixtureRun.summary, execution_mode: "controlled_assessment_fixture" }, steps: fixtureRun.steps.map((step, index) => ({ ...step, started_at: new Date(Date.parse("2026-10-10T12:00:00Z") + index * 2000).toISOString(), finished_at: step.node_id === "export" ? null : new Date(Date.parse("2026-10-10T12:00:00Z") + index * 2000 + 1000).toISOString(), outputs: { record_count: 1 } })) };
+  await page.route(`**/api/agents/runs/${id}`, route => { requests++; return route.fulfill({ json: saved }); });
+  await page.goto(`/history/${id}`);
+  await page.getByRole("button", { name: "Replay execution", exact: true }).click();
+  const replay = page.getByRole("region", { name: "Recorded execution replay" });
+  await expect(replay).toContainText("No new run or tool calls");
+  await page.getByRole("button", { name: "Pause replay" }).click();
+  await expect(replay).toContainText("Paused");
+  const timeline = page.getByLabel("Recorded timeline");
+  await timeline.fill("2500");
+  await expect(page.getByRole("button", { name: "Calendar feed · running", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Web reference · pending", exact: true })).toBeVisible();
+  await expect(page.locator('.react-flow__node[data-id="extraction"]')).not.toContainText("1 records");
+  await expect(timeline).toHaveValue("2500");
+  await page.getByRole("button", { name: "Return to complete execution" }).click();
+  await expect(page.getByRole("button", { name: "Calendar feed · completed", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Email sandbox · skipped", exact: true })).toBeVisible();
+  expect(requests).toBe(1);
+});
+
+
+test("minimal controls, inspection focus and closing saved history", async ({ page }) => {
+  await seed(page);
+  await page.goto("/agents");
+  for (const label of ["Reference event", "Records per source"]) {
+    const input = page.getByLabel(label);
+    await input.click();
+    expect(await input.evaluate(element => getComputedStyle(element).borderTopWidth)).toBe("0px");
+    expect(await input.evaluate(element => parseFloat(getComputedStyle(element).outlineWidth))).toBeLessThanOrEqual(1);
+  }
+  const button = page.getByRole("button", { name: "Run verification" });
+  const normal = await button.evaluate(element => getComputedStyle(element).backgroundColor);
+  await button.hover();
+  await expect(button).toHaveCSS("background-color", "rgb(45, 54, 56)");
+  expect(normal).not.toBe("rgb(45, 54, 56)");
+  await expect(button).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, -2)");
+  await page.goto(`/verification/${id}`);
+  await page.getByRole("button", { name: "Inspect record", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Record evidence" })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Normalized fields" })).toBeInViewport();
+  await page.goto(`/history/${id}`);
+  await expect(page.getByRole("heading", { name: "Execution · partial" })).toBeVisible();
+  await page.getByRole("button", { name: "Close execution", exact: true }).click();
+  await expect(page).toHaveURL(/\/history$/);
+  await expect(page.getByRole("heading", { name: "Execution · partial" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /EVT-101 · partial/ })).toBeVisible();
 });

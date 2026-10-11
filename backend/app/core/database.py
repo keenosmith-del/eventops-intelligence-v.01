@@ -1,19 +1,14 @@
 import os
-from pathlib import Path
 
 import psycopg
-from dotenv import load_dotenv
-
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+from app.core.environment import load_local_environment, validate_production_environment
 
 
 def connect_db() -> psycopg.Connection:
     """Create a PostgreSQL connection using environment configuration."""
 
-    load_dotenv(
-        dotenv_path=PROJECT_ROOT / ".env",
-        override=False,
-    )
+    load_local_environment()
+    validate_production_environment()
 
     database_url = os.getenv("DATABASE_URL")
 

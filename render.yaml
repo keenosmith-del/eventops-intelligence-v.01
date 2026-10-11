@@ -4,9 +4,11 @@ services:
     name: eventops-intelligence-api
     runtime: python
     plan: free
+    branch: main
+    autoDeployTrigger: checksPass
     buildCommand: pip install -r backend/requirements.lock.txt
     startCommand: bash scripts/start-backend.sh
-    healthCheckPath: /health
+    healthCheckPath: /ready
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.15
@@ -22,14 +24,14 @@ services:
         sync: false
       - key: GEMINI_ENABLED
         value: "false"
-      - key: GEMINI_API_KEY
-        sync: false
       - key: GEMINI_DAILY_LIMIT
         value: "10"
       - key: DEMO_SESSION_LIMIT
         value: "100"
       - key: DEMO_WRITE_LIMIT
         value: "100"
+      - key: DEMO_REQUEST_LIMIT
+        value: "2000"
       - key: AGENT_DAILY_RUN_LIMIT
         value: "30"
       - key: EMBEDDING_THREADS
@@ -42,18 +44,16 @@ services:
         value: https://date.nager.at/api/v3/PublicHolidays/2026/ZA
       - key: LANGSMITH_TRACING
         value: "false"
-      - key: MAILTRAP_API_TOKEN
-        sync: false
-      - key: MAILTRAP_ACCOUNT_ID
-        sync: false
-      - key: MAILTRAP_INBOX_ID
-        sync: false
   - type: web
     name: eventops-intelligence
     runtime: static
-    buildCommand: npm --prefix frontend ci && npm --prefix frontend run build
+    branch: main
+    autoDeployTrigger: checksPass
+    buildCommand: bash scripts/build-frontend.sh
     staticPublishPath: frontend/dist
     envVars:
+      - key: NODE_VERSION
+        value: "24"
       - key: VITE_API_BASE_URL
         sync: false
     routes:

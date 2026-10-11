@@ -2,16 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { api } from "../api.js";
+import ApplicationFooter from "./ApplicationFooter.jsx";
 import "../introduction.css";
-
-function Metadata() {
-  return (
-    <footer className="intro-footer">
-      <span>Designed &amp; Engineering by Keeno Smith</span>
-      <span>October 2026 (c) EventOps Intelligence v.01</span>
-    </footer>
-  );
-}
 
 function useIntroTransition() {
   const [leaving, setLeaving] = useState(false);
@@ -42,7 +34,7 @@ export function Landing() {
         <p className="intro-description intro-arrive">An intelligent workspace for knowledge retrieval, agent orchestration and operational verification.</p>
         <Link className="intro-action intro-start intro-arrive" to="/signin" onClick={(event) => transition(event, "/signin")}>Start <ArrowRight size={16} strokeWidth={1.4} aria-hidden="true" /></Link>
       </section>
-      <Metadata />
+      <ApplicationFooter />
     </main>
   );
 }
@@ -79,7 +71,7 @@ export function SignIn({ onEnter }) {
           <p className="intro-access-note">Reviewer demonstration access<span className="intro-account-note">No account required for demonstration access.</span></p>
         </section>
       </div>
-      <Metadata />
+      <ApplicationFooter />
     </main>
   );
 }

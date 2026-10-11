@@ -1,13 +1,10 @@
 import json
 import os
-from pathlib import Path
 from typing import Literal
 
 import httpx
-from dotenv import load_dotenv
+from app.core.environment import load_local_environment
 from pydantic import BaseModel, ConfigDict, Field
-
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 
@@ -144,10 +141,7 @@ def generate_grounded_answer(
     if not prepared:
         return insufficient_evidence_answer()
 
-    load_dotenv(
-        PROJECT_ROOT / ".env",
-        override=False,
-    )
+    load_local_environment()
 
     # Fail closed: generation is disabled by default.
     if os.getenv("GEMINI_ENABLED") != "true":

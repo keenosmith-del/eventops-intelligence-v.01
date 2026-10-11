@@ -17,9 +17,10 @@ export function useExecutionReplay(run) {
     return () => clearInterval(timer);
   }, [playing, speed, bounds]);
   useEffect(() => { if (bounds && offset >= bounds.duration) setPlaying(false); }, [offset, bounds]);
+  const steps = useMemo(() => active && bounds ? replaySteps(run.steps, bounds.start + offset) : run?.steps || [], [active, bounds, run?.steps, offset]);
   return {
     active, playing, offset, speed, bounds,
-    steps: active && bounds ? replaySteps(run.steps, bounds.start + offset) : run?.steps || [],
+    steps,
     start: () => { setOffset(0); setActive(true); setPlaying(true); },
     pause: () => setPlaying(false),
     resume: () => { if (offset >= bounds.duration) setOffset(0); setPlaying(true); },
