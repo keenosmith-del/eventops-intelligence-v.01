@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { Copy, Check } from "lucide-react";
 import Evidence from "./Evidence.jsx";
 
 const statusText = {
@@ -28,10 +30,19 @@ export default function Exchange({
   onInspect,
 }) {
   const { question, retrieval, answer } = exchange;
+  const [copyState, setCopyState] = useState("");
+  async function copyAnswer() {
+    try {
+      await navigator.clipboard.writeText(answer.content);
+      setCopyState("Answer copied");
+    } catch {
+      setCopyState("Could not copy. Select the answer text to copy it.");
+    }
+  }
   const context = retrieval?.query_plan?.context_resolution;
   status = retrieval?.query_plan?.generation_status || status;
   return (
-    <article className="exchange">
+    <article className="exchange" id={`exchange-${question.id}`}>
       <div className="question">
         <div className="eyebrow">
           Your question{" "}
@@ -92,6 +103,12 @@ export default function Exchange({
               <span>{answer.query_plan?.generation?.model}</span>
             </div>
             <p>{answer.content}</p>
+            <div className="answer-actions">
+              <button type="button" className="text-button" onClick={copyAnswer} aria-label="Copy answer">
+                {copyState === "Answer copied" ? <Check size={14} /> : <Copy size={14} />} Copy
+              </button>
+              <span role="status">{copyState}</span>
+            </div>
             <div className="citations" aria-label="Answer citations">
               {answer.evidence.map((citation, index) => {
                 const evidenceIndex =

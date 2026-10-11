@@ -1499,3 +1499,83 @@
     transition: none;
   }
 }
+
+/* Post-submission interaction polish. The popover never participates in layout. */
+.app-shell .uuid-disclosure .uuid-trigger {
+  background: transparent;
+  padding: 4px 0;
+  text-align: left;
+}
+.app-shell .uuid-disclosure form {
+  top: auto;
+  bottom: calc(100% + 12px);
+  width: 216px;
+  background: rgb(250 249 245 / 94%);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 36px rgb(52 60 62 / 10%);
+  padding-top: 30px;
+}
+.app-shell .uuid-disclosure .uuid-close {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
+.app-shell .chat-active .chat-composer {
+  background: transparent;
+  isolation: isolate;
+  padding-bottom: 12px;
+  bottom: 0;
+}
+.app-shell .chat-active .chat-composer::before {
+  content: "";
+  position: absolute;
+  inset: -36px -16px 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgb(245 244 238 / 0%), rgb(245 244 238 / 80%) 55%, #f5f4ee);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  mask-image: linear-gradient(to bottom, transparent, black 45%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, black 45%);
+}
+.app-shell .chat-active .exchange { scroll-margin-top: 30px; }
+.app-shell .chat-active .exchange:last-child,
+.app-shell .pending-question { min-height: calc(100svh - 260px); }
+.app-shell .chat-end { height: 32px; flex-shrink: 0; scroll-margin-bottom: 200px; }
+.app-shell .jump-to-bottom {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  background: rgb(253 252 248 / 92%);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 3px 18px rgb(52 60 62 / 10%);
+  font-size: 12px;
+}
+/* A quiet visible focus cue, including native form controls. */
+:is(input, textarea, select):focus,
+.app-shell .run-controls :is(input, select):focus-visible {
+  outline: 1px solid #b7c2bc;
+  outline-offset: 2px;
+  border-color: #b7c2bc;
+  box-shadow: 0 0 0 3px rgb(183 194 188 / 14%);
+}
+.app-shell .composer-surface:focus-within {
+  outline: 1px solid #b7c2bc;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgb(183 194 188 / 14%);
+}
+.app-shell .composer-surface textarea:focus {
+  outline: none;
+  box-shadow: none;
+}
+@media (max-width: 640px) {
+  .app-shell .chat-active .chat-composer::before { left: -8px; right: -8px; }
+}
+
+.app-shell .answer-actions { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ws-muted); }
+.app-shell .answer-actions button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; background: transparent; }

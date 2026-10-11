@@ -10,6 +10,7 @@ import {
   Plus,
   Settings,
   Workflow,
+  X,
 } from "lucide-react";
 import { api, UUID_PATTERN } from "../api.js";
 import { workspaceError } from "../workspace-errors.js";
@@ -39,11 +40,31 @@ export default function WorkspaceSidebar({
   const [settings, setSettings] = useState(false),
     [uuid, setUuid] = useState(""),
     [uuidError, setUuidError] = useState("");
+  const [uuidOpen, setUuidOpen] = useState(false);
+  const uuidControl = useRef(null), uuidTrigger = useRef(null);
   const aside = useRef(null),
     settingsControl = useRef(null);
   const [tooltip, setTooltip] = useState(null);
   const location = useLocation(),
     navigate = useNavigate();
+  useEffect(() => {
+    if (!uuidOpen) return;
+    function dismiss(event) {
+      if (event.type === "keydown" && event.key === "Escape") {
+        setUuidOpen(false);
+        uuidTrigger.current?.focus();
+      } else if (event.type === "pointerdown" && !uuidControl.current?.contains(event.target)) {
+        setUuidOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", dismiss);
+    document.addEventListener("keydown", dismiss);
+    return () => {
+      document.removeEventListener("pointerdown", dismiss);
+      document.removeEventListener("keydown", dismiss);
+    };
+  }, [uuidOpen]);
+  useEffect(() => { setUuidOpen(false); }, [location.key, collapsed]);
   useEffect(() => {
     if (!settings) return;
     function dismiss(event) {
@@ -324,21 +345,30 @@ export default function WorkspaceSidebar({
                   ))
                 )}
               </div>
-              <details className="uuid-disclosure">
-                <summary>Open saved chat</summary>
-                <form onSubmit={openUuid}>
+              <div className="uuid-disclosure" ref={uuidControl}>
+                <button type="button" ref={uuidTrigger} className="uuid-trigger"
+                  aria-expanded={uuidOpen} aria-controls="uuid-search"
+                  onClick={() => { setUuidOpen(value => !value); setUuidError(""); }}>
+                  Open saved chat
+                </button>
+                {uuidOpen && <form id="uuid-search" onSubmit={openUuid} aria-label="Open saved chat">
+                  <button type="button" className="uuid-close icon-button" aria-label="Close saved chat search"
+                    onClick={() => { setUuidOpen(false); uuidTrigger.current?.focus(); }}><X size={16} /></button>
                   <label htmlFor="restore-id">Open by UUID</label>
                   <input
                     id="restore-id"
+                    autoFocus
+                    aria-invalid={Boolean(uuidError)}
+                    aria-describedby={uuidError ? "uuid-error" : undefined}
                     value={uuid}
-                    onChange={(event) => setUuid(event.target.value)}
+                    onChange={(event) => { setUuid(event.target.value); setUuidError(""); }}
                     placeholder="Conversation UUID"
                     required
                   />
                   <button>Open conversation by UUID</button>
-                  {uuidError && <p role="alert">{uuidError}</p>}
-                </form>
-              </details>
+                  {uuidError && <p id="uuid-error" role="alert">{uuidError}</p>}
+                </form>}
+              </div>
             </>
           )}
         </div>

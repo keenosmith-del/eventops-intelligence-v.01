@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   ArrowUp,
+  ArrowDown,
   LoaderCircle,
   Plus,
   SlidersHorizontal,
@@ -88,7 +89,11 @@ export default function KnowledgeAssistant({ id }) {
   const lock = useRef(false),
     mounted = useRef(true),
     textarea = useRef(null),
-    end = useRef(null);
+    end = useRef(null),
+    pendingQuestion = useRef(null),
+    scrollTarget = useRef(null);
+  const [pending, setPending] = useState("");
+  const [awayFromBottom, setAwayFromBottom] = useState(false);
   const exchanges = groupExchanges(messages);
   const active =
     exchanges.find((exchange) => exchange.question.id === selected) ||
@@ -114,6 +119,7 @@ export default function KnowledgeAssistant({ id }) {
         if (controller.signal.aborted) return;
         setConversation(result.conversation);
         setMessages(result.messages);
+        scrollTarget.current = result.messages.filter(message => message.kind === "question").at(-1)?.id;
         setEvidenceOpen(
           window.matchMedia("(min-width: 1121px)").matches &&
             result.messages.some((message) => message.kind === "retrieval"),
@@ -142,13 +148,33 @@ export default function KnowledgeAssistant({ id }) {
     }
   }, [question]);
   useEffect(() => {
-    end.current?.scrollIntoView({
-      block: "nearest",
-      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-        ? "auto"
-        : "smooth",
-    });
-  }, [messages, busy]);
+    const update = () => {
+      const rect = end.current?.getBoundingClientRect();
+      setAwayFromBottom(Boolean(rect && rect.top > window.innerHeight - 180));
+    };
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    const observer = new ResizeObserver(update);
+    if (end.current?.parentElement) observer.observe(end.current.parentElement);
+    update();
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      observer.disconnect();
+    };
+  }, [messages, pending]);
+  useEffect(() => {
+    const target = pending ? pendingQuestion.current
+      : scrollTarget.current ? document.getElementById(`exchange-${scrollTarget.current}`) : null;
+    if (target) {
+      target.scrollIntoView({ block: "start", behavior: "auto" });
+      scrollTarget.current = null;
+    }
+  }, [messages, pending]);
+  function jumpToBottom() {
+    end.current?.scrollIntoView({ block: "end", behavior:
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
 
   async function ask(event) {
     event.preventDefault();
@@ -163,6 +189,7 @@ export default function KnowledgeAssistant({ id }) {
       return;
     lock.current = true;
     setBusy(true);
+    setPending(text);
     setError("");
     let target = conversation;
     try {
@@ -187,6 +214,8 @@ export default function KnowledgeAssistant({ id }) {
           state: { generation, options: { topK, generate } },
         });
       } else {
+        // Keep the reader at their question when the answer arrives.
+        scrollTarget.current = result.messages.find(message => message.kind === "question")?.id;
         setMessages((previous) => [
           ...previous,
           ...result.messages.filter(
@@ -216,7 +245,8 @@ export default function KnowledgeAssistant({ id }) {
       lock.current = false;
       if (mounted.current) {
         setBusy(false);
-        textarea.current?.focus();
+        setPending("");
+        textarea.current?.focus({ preventScroll: true });
       }
     }
   }
@@ -287,7 +317,10 @@ export default function KnowledgeAssistant({ id }) {
         <p className="fine-print">
           Source evidence is shown by default. To check incoming registrations
           against these references,{" "}
-          <Link to="/agents">continue to Agent Workspace</Link>.
+          <Link to={`/agents?${new URLSearchParams({
+            ...(active?.retrieval?.query_plan?.event_id ? { event: active.retrieval.query_plan.event_id } : {}),
+            ...(conversation?.id ? { conversation: conversation.id } : {}),
+          })}`}>continue to Agent Workspace</Link>.
         </p>
         {!empty && (
           <div className="conversation-heading">
@@ -314,8 +347,13 @@ export default function KnowledgeAssistant({ id }) {
                 }}
               />
             ))}
-            <div ref={end} />
+
           </div>
+        )}
+        {pending && !empty && (
+          <article ref={pendingQuestion} className="exchange pending-question">
+            <div className="question"><div className="eyebrow">Your question</div><h2>{pending}</h2></div>
+          </article>
         )}
         {busy && (
           <p className="chat-loading" role="status">
@@ -331,7 +369,10 @@ export default function KnowledgeAssistant({ id }) {
             Reviewing sources{generate ? " and requesting an answer" : ""}…
           </p>
         )}
+        <div ref={end} className="chat-end" aria-hidden="true" />
         <form className="chat-composer" onSubmit={ask} aria-busy={busy}>
+          {awayFromBottom && !empty && <button type="button" className="jump-to-bottom"
+            aria-label="Jump to latest message" onClick={jumpToBottom}><ArrowDown size={17} /> <span>Latest</span></button>}
           <div className="composer-surface">
             <button
               className="source-menu-toggle icon-button"

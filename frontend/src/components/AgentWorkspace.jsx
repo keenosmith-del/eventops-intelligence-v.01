@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ReactFlow,
   Handle,
@@ -543,13 +543,20 @@ export function ResultTable({ run, onExport }) {
 }
 
 export default function AgentWorkspace({ runId, view = "workspace" }) {
+  const [searchParams] = useSearchParams();
+  const eventFromChat = searchParams.get("event");
+  const conversationId = searchParams.get("conversation");
+  const journeyQuery = new URLSearchParams();
+  if (conversationId && /^[0-9a-f-]{36}$/i.test(conversationId)) journeyQuery.set("conversation", conversationId);
+  if (["EVT-101", "EVT-102", "EVT-103"].includes(eventFromChat)) journeyQuery.set("event", eventFromChat);
+  const journeySuffix = journeyQuery.size ? `?${journeyQuery}` : "";
   const navigate = useNavigate(),
     [connections, setConnections] = useState([]),
     [runs, setRuns] = useState([]),
     [run, setRun] = useState(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [eventId, setEventId] = useState("EVT-101"),
+    [eventId, setEventId] = useState(["EVT-101", "EVT-102", "EVT-103"].includes(eventFromChat) ? eventFromChat : "EVT-101"),
     [limit, setLimit] = useState(20),
     [selected, setSelected] = useState("trigger");
   const [manualSelection, setManualSelection] = useState(false);
@@ -630,7 +637,8 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
           if (!c.signal.aborted) setError(workspaceError(err));
         }
       };
-      poll();
+      // Defer the initial read so StrictMode cleanup can cancel its trial mount.
+      timer = setTimeout(poll, 0);
     }
     return () => {
       c.abort();
@@ -648,7 +656,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
         event_id: eventId,
         max_records: Number(limit),
       });
-      navigate(`/agents/runs/${result.id}`);
+      navigate(`/agents/runs/${result.id}${journeySuffix}`);
     } catch (err) {
       setError(workspaceError(err));
     } finally {
@@ -738,13 +746,13 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
         </p>
       </div>
       <nav className="fine-print" aria-label="Reviewer journey">
-        <Link to="/workspace">1. Ask about an event</Link>
+        <Link to={journeyQuery.has("conversation") ? `/conversations/${conversationId}` : "/workspace"}>1. Ask about an event</Link>
         {" → "}
-        <Link to="/agents">2. Run verification</Link>
+        <Link to={`/agents${journeySuffix}`}>2. Run verification</Link>
         {" → "}
-        <Link to="/verification">3. Inspect results</Link>
+        <Link to={run ? `/verification/${run.id}${journeySuffix}` : `/verification${journeySuffix}`}>3. Inspect results</Link>
         {" → "}
-        <Link to="/history">4. Revisit history</Link>
+        <Link to={run ? `/history/${run.id}${journeySuffix}` : `/history${journeySuffix}`}>4. Revisit history</Link>
       </nav>
       {listError && (
         <p role="alert" className="notice error">
@@ -1058,9 +1066,9 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       {run && (
         <>
           <nav className="execution-links" aria-label="Saved execution views">
-            <Link to={`/verification/${run.id}`}>Open saved results</Link>
-            <Link to={`/history/${run.id}`}>Open execution history</Link>
-            <Link to={`/agents/runs/${run.id}`}>Open execution graph</Link>
+            <Link to={`/verification/${run.id}${journeySuffix}`}>Open saved results</Link>
+            <Link to={`/history/${run.id}${journeySuffix}`}>Open execution history</Link>
+            <Link to={`/agents/runs/${run.id}${journeySuffix}`}>Open execution graph</Link>
           </nav>
           <p className="fine-print">
             Created {new Date(run.created_at).toLocaleString()}

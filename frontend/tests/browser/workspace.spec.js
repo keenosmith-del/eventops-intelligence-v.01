@@ -354,7 +354,7 @@ test("real API: create, retrieve, follow up, restore original wording and source
   ).json();
   expect(after.messages).toEqual(before.messages);
   await page.getByRole("link", { name: "Knowledge assistant" }).click();
-  await page.locator(".chat-history-item").filter({ hasText: "Where is EVT-101 being held?" }).click();
+  await page.locator(`.chat-history-item[href="/conversations/${realId}"]`).click();
   await expect(page.getByRole("heading", { name: question.content })).toBeVisible();
   await page.getByRole("link", { name: "Knowledge assistant" }).click();
   await page.getByText("Open saved chat", { exact: true }).click();
@@ -586,4 +586,89 @@ test("shared footer, collapsed-only hints, outside settings dismissal and exampl
     await expect(open).toHaveAttribute("aria-expanded", "false");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
+});
+
+test("saved chat search floats without moving navigation and dismisses accessibly", async ({ page }) => {
+  await fixtureApi(page);
+  await page.goto("/workspace");
+  const settings = page.getByRole("button", { name: "Settings", exact: true });
+  const before = await settings.boundingBox();
+  const trigger = page.getByRole("button", { name: "Open saved chat", exact: true });
+  await trigger.click();
+  await expect(page.getByLabel("Open by UUID")).toBeFocused();
+  expect(await settings.boundingBox()).toEqual(before);
+  await page.getByLabel("Open by UUID").fill("invalid");
+  await page.getByRole("button", { name: "Open conversation by UUID" }).click();
+  await expect(page.getByRole("alert")).toContainText("valid conversation UUID");
+  await page.keyboard.press("Escape");
+  await expect(trigger).toBeFocused();
+  await expect(page.getByLabel("Open by UUID")).toHaveCount(0);
+  await trigger.click();
+  await page.getByRole("heading", { name: "What would you like to know?" }).click();
+  await expect(page.getByLabel("Open by UUID")).toHaveCount(0);
+});
+
+test("new responses stay at the sent question and latest control reaches the end", async ({ page }) => {
+  await fixtureApi(page);
+  const messages = Array.from({ length: 8 }, (_, index) => [
+    { ...question, id: index * 3 + 1, content: `Earlier question ${index}` },
+    { ...retrieval, id: index * 3 + 2 },
+    { ...answer, id: index * 3 + 3, content: "Earlier answer. ".repeat(100) },
+  ]).flat();
+  await page.route(`**/api/conversations/${id}`, route => route.fulfill({ json: { conversation, messages } }));
+  const latest = { ...question, id: 100, content: "Explain the check-in policy" };
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route(`**/api/conversations/${id}/messages`, async route => {
+    await gate;
+    await route.fulfill({ json: { conversation_id: id, generation_status: "generated", messages: [latest,
+      { ...retrieval, id: 101 }, { ...answer, id: 102, content: "Supported policy detail. ".repeat(200) }] } });
+  });
+  await page.goto(`/conversations/${id}`);
+  await page.getByLabel("Continue the conversation").fill(latest.content);
+  await page.getByRole("button", { name: "Ask question" }).click();
+  await expect(page.locator(".pending-question h2")).toHaveText(latest.content);
+  release();
+  await expect(page.locator("#exchange-100")).toBeVisible();
+  await expect.poll(async () => (await page.locator("#exchange-100").boundingBox()).y).toBeLessThan(80);
+  await expect(page.getByRole("button", { name: "Jump to latest message" })).toBeVisible();
+  const composer = page.locator(".chat-composer");
+  expect(await composer.evaluate(element => getComputedStyle(element, "::before").backdropFilter)).toBe("blur(14px)");
+  await page.getByRole("button", { name: "Jump to latest message" }).click();
+  await expect(page.getByRole("button", { name: "Jump to latest message" })).toHaveCount(0);
+  const lastAnswer = page.locator("#exchange-100 .answer");
+  expect((await lastAnswer.boundingBox()).y + (await lastAnswer.boundingBox()).height).toBeLessThan((await composer.boundingBox()).y);
+  await page.getByLabel("Continue the conversation").focus();
+  expect(await page.getByLabel("Continue the conversation").evaluate(element => getComputedStyle(element).outlineStyle)).toBe("none");
+  expect(await page.locator(".composer-surface").evaluate(element => getComputedStyle(element).outlineColor)).toBe("rgb(183, 194, 188)");
+  await page.screenshot({ path: "/tmp/eventops-next-chat-desktop.png", fullPage: false });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "/tmp/eventops-next-chat-mobile.png", fullPage: false });
+});
+
+test("knowledge journey preserves the event and originating conversation", async ({ page }) => {
+  await fixtureApi(page, "generated");
+  await page.route(`**/api/conversations/${id}`, route => route.fulfill({ json: {
+    conversation, messages: [question, { ...retrieval, query_plan: { ...retrieval.query_plan, event_id: "EVT-102" } }, answer],
+  } }));
+  await page.route("**/api/agents/connections", route => route.fulfill({ json: [] }));
+  await page.route("**/api/agents/runs", route => route.fulfill({ json: [] }));
+  await page.goto(`/conversations/${id}`);
+  await page.getByRole("link", { name: "continue to Agent Workspace", exact: true }).click();
+  await expect(page.getByLabel("Reference event")).toHaveValue("EVT-102");
+  await expect(page.getByRole("link", { name: "1. Ask about an event" })).toHaveAttribute("href", `/conversations/${id}`);
+  await page.getByRole("link", { name: "1. Ask about an event" }).click();
+  await expect(page.getByRole("heading", { name: question.content })).toBeVisible();
+});
+
+test("generated answers can be copied with confirmation", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await fixtureApi(page, "generated");
+  await page.route(`**/api/conversations/${id}`, route => route.fulfill({ json: { conversation, messages: [question, retrieval, answer] } }));
+  await page.goto(`/conversations/${id}`);
+  await page.getByRole("button", { name: "Copy answer" }).click();
+  await expect(page.getByText("Answer copied", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(answer.content);
 });

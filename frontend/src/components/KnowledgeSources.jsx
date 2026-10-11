@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { workspaceError } from "../workspace-errors.js";
 export default function KnowledgeSources() {
@@ -24,7 +25,9 @@ export default function KnowledgeSources() {
     <div className="sources-page">
       <div className="page-intro">
         <h1>Knowledge sources</h1>
-        <p>Indexed documents and their original source references.</p>
+        <p>Events, policies and participant records used to ground answers and verify registrations.
+          External Calendar, Email and Web observations are compared against these reference sources.</p>
+        <Link className="text-button" to="/workspace">Ask about this knowledge</Link>
       </div>
       {error && (
         <p role="alert" className="notice error">

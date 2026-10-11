@@ -231,7 +231,7 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
   );
   await page.goto("/signin");
   await page.getByRole("button", { name: "Enter workspace" }).click();
-  await page.getByRole("link", { name: "Agent workspace" }).click();
+  await page.getByRole("link", { name: "Agent workspace", exact: true }).click();
   await page.getByRole("button", { name: "Run verification" }).click();
   await expect(page).toHaveURL(/\/agents\/runs\/[a-f0-9-]+/);
   const runId = page.url().split("/").at(-1);
@@ -279,21 +279,21 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
   await page.locator(".flow-surface").scrollIntoViewIfNeeded();
   for (const node of nodes) await expect(page.locator(`.react-flow__node[data-id="${node}"]`)).toBeVisible();
   await expect(page.locator('.react-flow__node[data-id="email"]')).toBeInViewport();
-  await page.locator(".flow-surface").screenshot({ path: "../docs/submission/workspace-redesign/part2-graph-desktop.png" });
-  await page.screenshot({ path: "../docs/submission/workspace-redesign/part2-agent-desktop.png", fullPage: true });
+  await page.locator(".flow-surface").screenshot({ path: "../docs/iterations/post-submission/evidence/part2-graph-desktop.png" });
+  await page.screenshot({ path: "../docs/iterations/post-submission/evidence/part2-agent-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator(".flow-surface").scrollIntoViewIfNeeded();
   for (const node of nodes) await expect(page.locator(`.react-flow__node[data-id="${node}"]`)).toBeVisible();
   await expect(page.locator('.react-flow__node[data-id="email"]')).toBeInViewport();
-  await page.locator(".flow-surface").screenshot({ path: "../docs/submission/workspace-redesign/part2-graph-mobile.png" });
-  await page.screenshot({ path: "../docs/submission/workspace-redesign/part2-agent-mobile.png", fullPage: true });
+  await page.locator(".flow-surface").screenshot({ path: "../docs/iterations/post-submission/evidence/part2-graph-mobile.png" });
+  await page.screenshot({ path: "../docs/iterations/post-submission/evidence/part2-agent-mobile.png", fullPage: true });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/verification/${runId}`);
   await expect(page.getByRole("button", { name: "Inspect record" }).first()).toBeVisible();
-  await page.screenshot({ path: "../docs/submission/workspace-redesign/part2-results-desktop.png", fullPage: true });
+  await page.screenshot({ path: "../docs/iterations/post-submission/evidence/part2-results-desktop.png", fullPage: true });
   await page.getByRole("link", { name: "Knowledge sources" }).click();
   await expect(page.getByText("19 total records", { exact: false })).toBeVisible();
-  await page.screenshot({ path: "../docs/submission/workspace-redesign/part2-sources-desktop.png", fullPage: true });
+  await page.screenshot({ path: "../docs/iterations/post-submission/evidence/part2-sources-desktop.png", fullPage: true });
   await page.getByRole("link", { name: "Execution history", exact: true }).click();
   await page
     .getByRole("button", { name: new RegExp(runId.slice(0, 8)) })
@@ -302,12 +302,12 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
     page.getByRole("heading", { name: /Execution · (partial|completed)/ }),
   ).toBeVisible();
   await page.reload();
-  await expect(
-    page.getByRole("button", { name: "CSV export · completed", exact: true }),
-  ).toBeVisible();
+  const restored = await page.evaluate(async id => (await fetch(`/api/agents/runs/${id}`, { headers: { "X-Demo-Session": sessionStorage.getItem("eventops-demo-token") } })).json(), runId);
+  expect(restored.steps).toEqual(stored.steps);
+  expect(restored.results).toEqual(stored.results);
   console.log("LIVE_AGENT_RUN=" + runId);
   await page.screenshot({
-    path: "../docs/submission/workspace-redesign/part2-history-desktop.png",
+    path: "../docs/iterations/post-submission/evidence/part2-history-desktop.png",
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -317,7 +317,7 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
     ),
   ).toBe(true);
   await page.screenshot({
-    path: "../docs/submission/workspace-redesign/part2-history-mobile.png",
+    path: "../docs/iterations/post-submission/evidence/part2-history-mobile.png",
     fullPage: true,
   });
 });
