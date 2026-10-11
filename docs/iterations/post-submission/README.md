@@ -35,3 +35,5 @@ See [test evidence](TEST_EVIDENCE.md), [changes](CHANGELOG.md), and [milestone s
 ## Future development
 
 Phases 2–6 modify the existing frontend/backend here, with evidence and changes documented in this directory. Do not create another external worktree, application copy or repository. Do not modify the unrelated v.02 project. A push of main may deploy Render and requires explicit owner confirmation. Phase 2 has not begun.
+
+Verified retirement: `git worktree remove` completed successfully after consolidation commit `250a4a2`. `git worktree list` now contains only the original v.01 checkout. The temporary directory is gone; `feature/post-submission-evolution`, both Phase 1 commits, the ignored settings backup and the stopped temporary database volume are preserved. The unrelated v.02 project was not modified. No remote push or production deployment occurred. The repository is ready for Phase 2, which has not started.

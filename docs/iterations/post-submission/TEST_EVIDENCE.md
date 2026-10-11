@@ -48,3 +48,5 @@ Current checkout: `/Users/keenosmith/Programming/Projects/inference-group/evento
 Sandbox-only attempts to bind/connect localhost were denied; rerunning with approved local network access completed the checks above. No application defect was inferred from those sandbox failures.
 
 Temporary `.env` is preserved in ignored `storage/retired-environments/phase1.env` (mode 0600); original `.env` was not overwritten. Dependency installations, caches and transient test outputs are reproducible ignored artifacts, not untransferred source work. The temporary database volume remains intact. Phase 2 has not begun.
+
+Verified retirement: `git worktree remove` completed successfully after consolidation commit `250a4a2`. `git worktree list` now contains only the original v.01 checkout. The temporary directory is gone; `feature/post-submission-evolution`, both Phase 1 commits, the ignored settings backup and the stopped temporary database volume are preserved. The unrelated v.02 project was not modified. No remote push or production deployment occurred. The repository is ready for Phase 2, which has not started.
