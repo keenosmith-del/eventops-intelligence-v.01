@@ -597,6 +597,13 @@ test("saved chat search floats without moving navigation and dismisses accessibl
   await trigger.click();
   await expect(page.getByLabel("Open by UUID")).toBeFocused();
   expect(await settings.boundingBox()).toEqual(before);
+  await expect(page.getByLabel("Open by UUID")).toHaveCSS("border-top-width", "0px");
+  await expect(page.getByLabel("Open by UUID")).toHaveCSS("outline-style", "none");
+  const close = page.getByRole("button", { name: "Close saved chat search" });
+  await close.hover();
+  await expect(close).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(close).toHaveCSS("border-top-width", "0px");
+  await expect(close.locator("svg")).not.toHaveCSS("transform", "none");
   await page.getByLabel("Open by UUID").fill("invalid");
   await page.getByRole("button", { name: "Open conversation by UUID" }).click();
   await expect(page.getByRole("alert")).toContainText("valid conversation UUID");
@@ -657,7 +664,7 @@ test("knowledge journey preserves the event and originating conversation", async
   await page.route("**/api/agents/runs", route => route.fulfill({ json: [] }));
   await page.goto(`/conversations/${id}`);
   await page.getByRole("link", { name: "continue to Agent Workspace", exact: true }).click();
-  await expect(page.getByLabel("Reference event")).toHaveValue("EVT-102");
+  await expect(page.getByLabel("Reference event")).toHaveText("EVT-102");
   await expect(page.getByRole("link", { name: "1. Ask about an event" })).toHaveAttribute("href", `/conversations/${id}`);
   await page.getByRole("link", { name: "1. Ask about an event" }).click();
   await expect(page.getByRole("heading", { name: question.content })).toBeVisible();

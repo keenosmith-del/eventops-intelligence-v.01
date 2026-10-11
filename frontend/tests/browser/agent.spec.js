@@ -408,3 +408,71 @@ test("a missing selected execution does not turn successful empty history into a
   await expect(page.getByText("No executions saved yet.", { exact: false })).toBeVisible();
   await expect(page.getByText("Saved executions are unavailable.", { exact: false })).toHaveCount(0);
 });
+
+test("rounded dropdown menus support keyboard selection and real run configuration", async ({ page }) => {
+  await seed(page);
+  let config;
+  await page.route("**/api/agents/runs", route => {
+    if (route.request().method() === "POST") {
+      config = route.request().postDataJSON();
+      return route.fulfill({ status: 202, json: { ...fixtureRun, event_id: config.event_id } });
+    }
+    return route.fulfill({ json: [fixtureRun] });
+  });
+  await page.goto("/agents");
+  const event = page.getByRole("combobox", { name: "Reference event" });
+  await event.click();
+  const menu = page.getByRole("listbox");
+  await expect(menu).toBeVisible();
+  await expect(menu).toHaveCSS("border-radius", "20px");
+  await expect(menu).toHaveCSS("border-top-width", "0px");
+  await event.press("ArrowDown");
+  await event.press("Enter");
+  await expect(event).toHaveText("EVT-102");
+  await expect(menu).toHaveCount(0);
+  await event.click();
+  await event.press("Escape");
+  await expect(event).toBeFocused();
+  await expect(menu).toHaveCount(0);
+  await page.getByRole("button", { name: "Run verification" }).click();
+  await expect(page).toHaveURL(new RegExp(id));
+  expect(config).toEqual({ event_id: "EVT-102", max_records: 20 });
+  await page.goto(`/verification/${id}`);
+  await page.getByRole("combobox", { name: "Show" }).click();
+  await page.getByRole("option", { name: "Verified", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Inspect record" })).toHaveCount(0);
+  await page.getByRole("combobox", { name: "Show" }).click();
+  await page.getByRole("option", { name: "All records", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Inspect record" })).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("combobox", { name: "Show" }).click();
+  const bounds = await menu.boundingBox();
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: "/tmp/eventops-rounded-picker-mobile.png" });
+});
+
+test("saved executions stay bounded and older runs remain reachable on desktop and mobile", async ({ page }) => {
+  await seed(page);
+  const runs = Array.from({ length: 20 }, (_, index) => ({ ...fixtureRun,
+    id: `22222222-2222-4222-8222-${String(index).padStart(12, "0")}`,
+  }));
+  await page.route("**/api/agents/runs", route => route.fulfill({ json: runs }));
+  await page.route(`**/api/agents/runs/${runs.at(-1).id}`, route => route.fulfill({ json: runs.at(-1) }));
+  for (const width of [1280, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/history");
+    const list = page.getByRole("region", { name: "Saved execution list" });
+    await expect(list.getByRole("button")).toHaveCount(20);
+    const size = await list.evaluate(element => ({ client: element.clientHeight, full: element.scrollHeight }));
+    expect(size.client).toBeLessThanOrEqual(330);
+    expect(size.full).toBeGreaterThan(size.client);
+    await expect(page.getByText("20 saved · Scroll for older executions")).toBeVisible();
+    await list.focus();
+    await list.press("End");
+    await list.getByRole("button").last().click();
+    await expect(page).toHaveURL(new RegExp(runs.at(-1).id));
+    await expect(page.getByRole("heading", { name: "Execution · partial" })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+});

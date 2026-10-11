@@ -24,3 +24,14 @@ The owner corrected the development structure: one evolving application in the o
 Consolidation validation passed: 217 backend / 16 frontend unit / 29 browser regression / 3 live checks and build. Original recording checksums verified. Corrected the live missing-field count assertion for real provider data and saved new evidence in a separate consolidation subfolder.
 
 Verified retirement: `git worktree remove` completed successfully after consolidation commit `250a4a2`. `git worktree list` now contains only the original v.01 checkout. The temporary directory is gone; `feature/post-submission-evolution`, both Phase 1 commits, the ignored settings backup and the stopped temporary database volume are preserved. The unrelated v.02 project was not modified. No remote push or production deployment occurred. The repository is ready for Phase 2, which has not started.
+
+
+## Phase 1 control styling audit — 11 October 2026
+
+Replaced all seven native dropdowns (agent event, four result filters, chat source count and replay speed) with a shared StyledSelect. Both pill trigger and floating option menu now use rounded corners, cream surfaces, restrained selected-state color and a light shadow. The portal prevents clipping in toolbars/scroll containers; placement flips above when needed and updates before paint after a viewport resize. Keyboard arrows, Home/End, typeahead, Enter/Space, Escape and Tab work; selection still updates real query/run/filter/replay state. No component library added.
+
+Removed the UUID field border and native focus outline; retained a soft grey-green focus halo. Close X buttons have transparent backgrounds and zero border/shadow on hover, with a small icon rotation/scale and color shift. Keyboard focus remains visibly light. Audited all form controls, sidebar popovers, chat/context, result filters, agent forms, replay and history surfaces; full-screen backdrop and transparent inner composer text areas retain their intentional geometry.
+
+Saved executions now occupy a bounded scroll region (330 px desktop, 290 px mobile), with two desktop columns, one mobile column, actual count/scroll hint and a selected-run highlight. Every returned run remains accessible by mouse, touch and keyboard. Opening saved runs retains the existing journey query context.
+
+Validation: 16 frontend unit tests, 31 browser regressions (3 opt-in skips), 217 backend tests (1 skip), two actual local entry/RAG checks and build pass. Visual QA of actual local UI is recorded in `evidence/control-audit/`. No production push or Phase 2 feature work.

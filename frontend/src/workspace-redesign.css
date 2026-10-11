@@ -1579,3 +1579,58 @@
 
 .app-shell .answer-actions { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ws-muted); }
 .app-shell .answer-actions button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; background: transparent; }
+
+/* Shared control audit: quiet focus, icon-only close hover, bounded history. */
+.app-shell :is(button, a, summary):focus-visible {
+  outline: 1px solid #b7c2bc;
+  outline-offset: 3px;
+}
+.app-shell .uuid-disclosure input {
+  border: 0;
+  border-radius: 14px;
+  background: #efefe9;
+  padding: 10px 12px;
+}
+.app-shell .uuid-disclosure input:focus {
+  outline: none;
+  border: 0;
+  box-shadow: 0 0 0 2px rgb(183 194 188 / 30%);
+}
+.app-shell button:has(> svg.lucide-x),
+.app-shell button:has(> svg.lucide-x):is(:hover, :active) {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  color: #77817f;
+}
+.app-shell button:has(> svg.lucide-x) > svg {
+  transition: transform 160ms ease, color 160ms ease;
+}
+.app-shell button:has(> svg.lucide-x):hover > svg {
+  transform: rotate(8deg) scale(1.08);
+  color: #424e4a;
+}
+.app-shell .saved-execution-scroll {
+  max-height: 330px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #cdd2c9 transparent;
+  padding: 3px 6px 3px 3px;
+  border-radius: 18px;
+}
+.app-shell .saved-execution-scroll button[aria-current="true"] { background: #e4e8df; }
+.app-shell .execution-list > .result-toolbar { margin-top: 0; }
+.app-shell .result-toolbar .select-control { margin-left: 6px; }
+@media (max-width: 640px) {
+  .app-shell .saved-execution-scroll { max-height: 290px; }
+  .app-shell .execution-list { padding: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell button:has(> svg.lucide-x) > svg { transition: none; }
+}
+.app-shell .saved-execution-scroll { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.app-shell .saved-execution-hint { margin: 0; font-size: 12px; color: #78827b; }
+@media (max-width: 640px) { .app-shell .saved-execution-scroll { grid-template-columns: 1fr; } }
+.app-shell .saved-execution-scroll:focus-visible { outline: 1px solid #b7c2bc; outline-offset: 3px; }

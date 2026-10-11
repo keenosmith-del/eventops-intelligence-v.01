@@ -29,3 +29,10 @@ Problem: an old live test assumed downloading CSV completes a stored graph stage
 Problem: the temporary external directory was based on an incorrect structure requirement. Options: cherry-pick, copy files, or fast-forward the original main. Selected: fast-forward because both working trees were clean and main was an ancestor of the two Phase 1 commits. This preserves exact commit identities and newer submission assets without duplicated commits.
 
 Restore original local runtime configuration while retaining credentials/volumes. Preserve comparisons with annotated historical tags, not duplicate application directories. The recorded assessment release and later repository baseline are distinguished explicitly. Trade-off: main is now the development branch; every production-triggering push requires owner confirmation. The obsolete worktree is removed only after full verification; its branch and local database volume remain.
+
+
+## Consistent dropdown menus and contained history
+
+Problem: native option popups retain square platform styling despite rounded select fields; long saved lists push primary workspace content down. Options: native CSS-only enhancement, a component dependency, or a small shared accessible picker. Selected a shared combobox/listbox component with portal positioning and existing Lucide icons, retaining the current controlled values and handlers. This provides consistent rounded popup styling across desktop/mobile without depending on native picker customization support. Trade-off: keyboard, dismissal, disabled state and focus behavior must be maintained by the component; browser coverage checks selection, Escape, menu positioning, filtering and request payloads.
+
+History uses a bounded keyboard-focusable scroll region rather than hiding records or fabricating pagination. This keeps every currently returned execution reachable while limiting page height. The actual saved count and scroll hint make the behavior discoverable.

@@ -1,3 +1,4 @@
+import StyledSelect from "./StyledSelect.jsx";
 import { useEffect, useMemo, useState } from "react";
 import { replayBounds, replaySteps } from "../execution.js";
 
@@ -87,7 +88,7 @@ export default function ExecutionReplay({ replay }) {
         <button onClick={replay.finish}>Return to complete execution</button>
         <label>
           Replay speed{" "}
-          <select
+          <StyledSelect
             value={replay.speed}
             onChange={(event) => replay.setSpeed(Number(event.target.value))}
           >
@@ -96,7 +97,7 @@ export default function ExecutionReplay({ replay }) {
                 {speed}×
               </option>
             ))}
-          </select>
+          </StyledSelect>
         </label>
         <label className="replay-seek">
           Recorded timeline{" "}

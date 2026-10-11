@@ -1,0 +1,59 @@
+.select-control { display: inline-flex; vertical-align: middle; min-width: 0; max-width: 100%; }
+.app-shell .styled-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 36px;
+  max-width: 100%;
+  padding: 8px 13px;
+  border: 0;
+  border-radius: 999px;
+  background: #eeeee8;
+  color: #4b5555;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  outline: 0;
+  box-shadow: none;
+}
+.app-shell .styled-select > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-shell .styled-select svg { flex-shrink: 0; transition: transform 160ms ease; }
+.app-shell .styled-select[aria-expanded="true"] svg { transform: rotate(180deg); }
+.app-shell .styled-select:hover:not(:disabled) { background: #e6e8e1; }
+.app-shell .styled-select:focus-visible { outline: 1px solid #b7c2bc; outline-offset: 3px; }
+.app-shell .styled-select:active { transform: none; }
+.eventops-select-menu {
+  position: fixed;
+  z-index: 100;
+  padding: 7px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #cdd2c9 transparent;
+  border: 0;
+  border-radius: 20px;
+  background: rgb(250 249 245 / 96%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 10px 36px rgb(52 60 62 / 12%);
+  color: #4b5555;
+  font-family: "Helvetica Neue", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.eventops-select-menu .select-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 38px;
+  padding: 9px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.eventops-select-menu .select-option.is-active { background: #e9ece4; color: #343c3e; }
+.eventops-select-menu .select-option[aria-disabled="true"] { opacity: .45; cursor: default; }
+.eventops-select-menu .select-option svg { flex-shrink: 0; }
+@media (prefers-reduced-motion: reduce) { .app-shell .styled-select svg { transition: none; } }

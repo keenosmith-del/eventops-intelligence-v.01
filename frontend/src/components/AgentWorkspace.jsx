@@ -1,3 +1,4 @@
+import StyledSelect from "./StyledSelect.jsx";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -218,7 +219,7 @@ export function ResultTable({ run, onExport }) {
         <h2>Verification results</h2>
         <label htmlFor="result-filter">
           Show{" "}
-          <select
+          <StyledSelect
             id="result-filter"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -228,11 +229,11 @@ export function ResultTable({ run, onExport }) {
             <option value="review_required">Flagged</option>
             <option value="unverified">Unverified</option>
             <option value="incomplete">Missing details</option>
-          </select>
+          </StyledSelect>
         </label>
         <label>
           Source{" "}
-          <select
+          <StyledSelect
             value={sourceFilter}
             onChange={(event) => setSourceFilter(event.target.value)}
           >
@@ -240,11 +241,11 @@ export function ResultTable({ run, onExport }) {
             {Object.keys(stats.sources).map((source) => (
               <option key={source}>{source}</option>
             ))}
-          </select>
+          </StyledSelect>
         </label>
         <label>
           Event{" "}
-          <select
+          <StyledSelect
             value={eventFilter}
             onChange={(event) => setEventFilter(event.target.value)}
           >
@@ -256,11 +257,11 @@ export function ResultTable({ run, onExport }) {
                 </option>
               ),
             )}
-          </select>
+          </StyledSelect>
         </label>
         <label>
           Discrepancy{" "}
-          <select
+          <StyledSelect
             value={issueFilter}
             onChange={(event) => setIssueFilter(event.target.value)}
           >
@@ -270,7 +271,7 @@ export function ResultTable({ run, onExport }) {
                 {issue.replaceAll("_", " ")}
               </option>
             ))}
-          </select>
+          </StyledSelect>
         </label>
         {onExport && (
           <>
@@ -813,7 +814,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
           <form className="run-controls panel" onSubmit={start}>
             <div>
               <label htmlFor="event-id">Reference event</label>
-              <select
+              <StyledSelect
                 id="event-id"
                 value={eventId}
                 onChange={(e) => setEventId(e.target.value)}
@@ -822,7 +823,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
                 <option>EVT-101</option>
                 <option>EVT-102</option>
                 <option>EVT-103</option>
-              </select>
+              </StyledSelect>
             </div>
             <div>
               <label htmlFor="record-limit">Records per source</label>
@@ -868,33 +869,37 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
           {loadingRuns ? (
             <p role="status">Loading saved executions…</p>
           ) : runs.length ? (
-            <div className="recent-grid">
-              {runs.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() =>
-                    navigate(
-                      `${view === "results" ? "/verification" : view === "history" ? "/history" : "/agents/runs"}/${item.id}`,
-                    )
-                  }
-                >
-                  <strong>
-                    {item.event_id} · {item.status}
-                  </strong>
-                  <small>
-                    {new Date(item.created_at).toLocaleString()} ·{" "}
-                    {item.id.slice(0, 8)}
-                  </small>
-                  <span className="execution-metadata">
-                    {item.summary?.total !== undefined
-                      ? `${item.summary.total} records`
-                      : "Results not recorded"}
-                    {item.summary?.tools &&
-                      ` · Tools: ${Object.keys(item.summary.tools).join(", ")}`}
-                  </span>
-                </button>
-              ))}
-            </div>
+            <>
+              {runs.length > 4 && <p className="saved-execution-hint">{runs.length} saved · Scroll for older executions</p>}
+              <div className="recent-grid saved-execution-scroll" role="region" aria-label="Saved execution list" tabIndex={0}>
+                {runs.map((item) => (
+                  <button
+                    key={item.id}
+                    aria-current={item.id === runId ? "true" : undefined}
+                    onClick={() =>
+                      navigate(
+                        `${view === "results" ? "/verification" : view === "history" ? "/history" : "/agents/runs"}/${item.id}${journeySuffix}`,
+                      )
+                    }
+                  >
+                    <strong>
+                      {item.event_id} · {item.status}
+                    </strong>
+                    <small>
+                      {new Date(item.created_at).toLocaleString()} ·{" "}
+                      {item.id.slice(0, 8)}
+                    </small>
+                    <span className="execution-metadata">
+                      {item.summary?.total !== undefined
+                        ? `${item.summary.total} records`
+                        : "Results not recorded"}
+                      {item.summary?.tools &&
+                        ` · Tools: ${Object.keys(item.summary.tools).join(", ")}`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
           ) : listError ? (
             <p>
               Saved executions are unavailable. Retry saved executions above.

@@ -50,3 +50,14 @@ Sandbox-only attempts to bind/connect localhost were denied; rerunning with appr
 Temporary `.env` is preserved in ignored `storage/retired-environments/phase1.env` (mode 0600); original `.env` was not overwritten. Dependency installations, caches and transient test outputs are reproducible ignored artifacts, not untransferred source work. The temporary database volume remains intact. Phase 2 has not begun.
 
 Verified retirement: `git worktree remove` completed successfully after consolidation commit `250a4a2`. `git worktree list` now contains only the original v.01 checkout. The temporary directory is gone; `feature/post-submission-evolution`, both Phase 1 commits, the ignored settings backup and the stopped temporary database volume are preserved. The unrelated v.02 project was not modified. No remote push or production deployment occurred. The repository is ready for Phase 2, which has not started.
+
+
+## Phase 1 styling audit verification
+
+- `npm test`: 16 passed; `npm run build`: passed (existing bundle warning retained).
+- `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`: 31 passed, 3 opt-in skips in 23.3s. New checks cover rounded option menus, keyboard selection and submitted event configuration, real filter changes, popup bounds at 390px, bounded lists with 20 records, and opening older records on desktop/mobile. UUID regression checks border/focus/close hover styling.
+- `GEMINI_ENABLED=false .venv/bin/python -m pytest -q --tb=no`: 217 passed, 1 skipped in 2.32s.
+- `RUN_LIVE_API=true RUN_LIVE_ENTRY=true PLAYWRIGHT_CHANNEL=chrome npm run test:e2e -- --grep 'real API:|real reviewer API'`: 2 passed in 2.6s against original local backend. Conversation `b27828d3-dfbc-4527-a7c1-fb5fa6ba439e` retained four messages and contextual citations; generation unavailable as expected with Gemini disabled.
+- Actual local preview screenshots visually inspected: `evidence/control-audit/desktop-picker.png`, `desktop-saved-executions.png`, `mobile-saved-executions.png`, `uuid-search.png`. Browser-only regression fixtures remain confined to tests.
+
+The resize regression initially exposed stale popup coordinates; moving placement to a layout effect removed the first-frame stale geometry, and targeted/full regressions then passed. Original backend, deployment configuration and database credentials are unchanged.

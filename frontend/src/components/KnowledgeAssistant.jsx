@@ -1,3 +1,4 @@
+import StyledSelect from "./StyledSelect.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -446,7 +447,7 @@ export default function KnowledgeAssistant({ id }) {
               </label>
               <label htmlFor="top-k">
                 Sources{" "}
-                <select
+                <StyledSelect
                   id="top-k"
                   value={topK}
                   onChange={(event) => setTopK(event.target.value)}
@@ -455,7 +456,7 @@ export default function KnowledgeAssistant({ id }) {
                   {Array.from({ length: 20 }, (_, index) => (
                     <option key={index + 1}>{index + 1}</option>
                   ))}
-                </select>
+                </StyledSelect>
               </label>
               <p>
                 Generation depends on service availability. Up to five retrieved
