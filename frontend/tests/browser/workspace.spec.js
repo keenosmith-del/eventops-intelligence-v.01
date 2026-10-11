@@ -589,6 +589,7 @@ test("shared footer, collapsed-only hints, outside settings dismissal and exampl
 });
 
 test("saved chat search floats without moving navigation and dismisses accessibly", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
   await fixtureApi(page);
   await page.goto("/workspace");
   const settings = page.getByRole("button", { name: "Settings", exact: true });
@@ -603,7 +604,11 @@ test("saved chat search floats without moving navigation and dismisses accessibl
   await close.hover();
   await expect(close).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
   await expect(close).toHaveCSS("border-top-width", "0px");
-  await expect(close.locator("svg")).not.toHaveCSS("transform", "none");
+  await expect(close).toHaveCSS("transition-duration", "0s");
+  await expect(close.locator("svg")).toHaveCSS("transition-duration", "0s");
+  await expect(close.locator("svg")).toHaveCSS("animation-name", "none");
+  await expect(close.locator("svg")).toHaveCSS("transform", "matrix(1.08, 0, 0, 1.08, 0, 0)");
+  await expect(close.locator("svg")).toHaveCSS("color", "rgb(102, 114, 110)");
   await page.getByLabel("Open by UUID").fill("invalid");
   await page.getByRole("button", { name: "Open conversation by UUID" }).click();
   await expect(page.getByRole("alert")).toContainText("valid conversation UUID");

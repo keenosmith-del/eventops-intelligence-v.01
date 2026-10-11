@@ -1,5 +1,7 @@
 # Validation evidence — 11 October 2026
 
+Close X correction: `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e -- --grep 'saved chat search floats'` passed (1 test). With reduced motion disabled, the browser confirms an immediate scale-only transform, zero transition duration, no animation, subtle color shift and no hover border/background. The shared rule covers both UUID search and the evidence-panel X. No backend or database changes were required for this correction.
+
 ## Historical Phase 1 checks in the temporary environment
 
 The following evidence describes the initial Phase 1 setup. Its temporary ports/database are historical; current development uses original v.01 settings documented below.
