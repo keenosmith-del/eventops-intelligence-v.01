@@ -1,0 +1,2 @@
+﻿id,status,event_id,title,full_name,email,starts_at,venue,duplicate_count,issues,source_references,reference_matches
+8cc22f899d28c292,verified,EVT-101,EventOps final assessment | EVT-101 | duplicate,Ada Mensah,ada.mensah@example.com,,,1,,https://mailtrap.io/api/accounts/2853336/inboxes/4953522/messages/5748076082/body.txt; https://mailtrap.io/api/accounts/2853336/inboxes/4953522/messages/5748068714/body.txt,EVT-101; P-001

@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App.jsx";
 import "./styles.css";
 
+// Error boundary to catch errors in the app and display a fallback UI
 class ErrorBoundary extends React.Component {
   state = { failed: false };
   static getDerivedStateFromError() {
@@ -22,6 +23,7 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+// Render the app
 createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <ErrorBoundary>

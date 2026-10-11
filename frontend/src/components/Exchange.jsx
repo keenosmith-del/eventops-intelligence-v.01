@@ -46,7 +46,11 @@ export default function Exchange({
       </div>
       <div className="result">
         <div className="section-label">
-          <img className="assistant-avatar" src="/mascot-head.png" alt="EventOps assistant" />
+          <img
+            className="assistant-avatar"
+            src="/mascot-head.png"
+            alt="EventOps assistant"
+          />
           <span>Retrieved evidence</span>
           <span className="pill">
             {retrieval?.evidence?.length || 0}{" "}
@@ -71,7 +75,6 @@ export default function Exchange({
             ) : (
               <Evidence records={retrieval.evidence} messageId={retrieval.id} />
             )}
-
           </>
         )}
         <p

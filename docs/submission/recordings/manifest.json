@@ -1,0 +1,58 @@
+{
+  "captured_on": "2026-10-11",
+  "application": "https://eventops-intelligence.onrender.com",
+  "release": "7cc6568",
+  "execution_id": "e5f325b2-03e3-4da5-8636-cdc894d0ed2b",
+  "execution_mode": "real_https_read_only",
+  "summary": {
+    "tools": {
+      "web": "completed",
+      "email": "completed",
+      "calendar": "completed"
+    },
+    "total": 18,
+    "flagged": 17,
+    "verified": 1,
+    "execution_mode": "real_https_read_only",
+    "duplicates_merged": 12
+  },
+  "recordings": [
+    {
+      "file": "recordings/eventops-agent-verification.mp4",
+      "duration": "00:01:58.27",
+      "bytes": 2612970,
+      "resolution": "1920x1080",
+      "frame_rate": 30,
+      "codec": "H.264",
+      "audio": false,
+      "sha256": "0c73dcf67318613f0f2b3c19f40b9909c50b315b02e61be9c44aa625c235677f",
+      "full_decode": "passed"
+    },
+    {
+      "file": "recordings/eventops-complete-walkthrough.mp4",
+      "duration": "00:03:36.23",
+      "bytes": 3987208,
+      "resolution": "1920x1080",
+      "frame_rate": 30,
+      "codec": "H.264",
+      "audio": false,
+      "sha256": "8da9ab583ae83ed67045cba3d840f9c78605e7f832e1feb6695c0c5c403c0068",
+      "full_decode": "passed"
+    },
+    {
+      "file": "recordings/eventops-rag-demonstration.mp4",
+      "duration": "00:01:10.50",
+      "bytes": 921839,
+      "resolution": "1920x1080",
+      "frame_rate": 30,
+      "codec": "H.264",
+      "audio": false,
+      "sha256": "b5a02cfae90a89dfd3412eebe6834ca6172619b2edac110682385a382adae414",
+      "full_decode": "passed"
+    }
+  ],
+  "exports": {
+    "eventops-full.csv": 18,
+    "eventops-verified.csv": 1
+  }
+}

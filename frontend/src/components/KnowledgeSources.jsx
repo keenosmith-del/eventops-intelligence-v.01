@@ -15,15 +15,16 @@ export default function KnowledgeSources() {
     return () => c.abort();
   }, []);
   useEffect(() => {
-    if (data && window.location.hash) document.getElementById(decodeURIComponent(window.location.hash.slice(1)))?.scrollIntoView({ block: "start" });
+    if (data && window.location.hash)
+      document
+        .getElementById(decodeURIComponent(window.location.hash.slice(1)))
+        ?.scrollIntoView({ block: "start" });
   }, [data]);
   return (
     <div className="sources-page">
       <div className="page-intro">
         <h1>Knowledge sources</h1>
-        <p>
-          Indexed documents and their original source references.
-        </p>
+        <p>Indexed documents and their original source references.</p>
       </div>
       {error && (
         <p role="alert" className="notice error">
@@ -39,13 +40,30 @@ export default function KnowledgeSources() {
           </p>
           <div className="source-documents">
             {data.sources.map((source) => (
-              <section className="panel" id={`source-${source.document_id}`} key={source.document_id}>
-                <header className="source-heading"><h2>{source.document_id}</h2><span>{source.document_id.split(".").at(-1).toLowerCase()} source</span></header>
+              <section
+                className="panel"
+                id={`source-${source.document_id}`}
+                key={source.document_id}
+              >
+                <header className="source-heading">
+                  <h2>{source.document_id}</h2>
+                  <span>
+                    {source.document_id.split(".").at(-1).toLowerCase()} source
+                  </span>
+                </header>
                 <p>
                   {source.record_count} records · {source.indexed_count}{" "}
                   embeddings stored
                 </p>
-                <p className="source-index-state">{source.indexed_count === source.record_count ? "All records indexed" : "Indexing incomplete"} · {Array.from(new Set(source.records.map(record => record.record_type))).join(", ")}</p>
+                <p className="source-index-state">
+                  {source.indexed_count === source.record_count
+                    ? "All records indexed"
+                    : "Indexing incomplete"}{" "}
+                  ·{" "}
+                  {Array.from(
+                    new Set(source.records.map((record) => record.record_type)),
+                  ).join(", ")}
+                </p>
                 {source.records.map((record) => (
                   <details className="source-row" key={record.record_id}>
                     <summary>
@@ -57,7 +75,6 @@ export default function KnowledgeSources() {
                     </summary>
                     <p>{record.content}</p>
                     <code>{record.metadata.source_reference}</code>
-
                   </details>
                 ))}
               </section>
@@ -65,7 +82,8 @@ export default function KnowledgeSources() {
           </div>
           {!data.sources.length && <p>No indexed sources are available.</p>}
           <p className="fine-print">
-            Document uploads are unavailable. These sources are managed by the workspace administrator.
+            Document uploads are unavailable. These sources are managed by the
+            workspace administrator.
           </p>
         </>
       )}

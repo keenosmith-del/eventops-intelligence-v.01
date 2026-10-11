@@ -1,3 +1,7 @@
-# Screen recordings
+# Final production recordings
 
-Place actual reviewer walkthrough recordings here after recording them. No recording has been created yet. Show Journey A (RAG/history) and Journey B (real configured tools, discrepancies, CSV/history). Clearly identify missing connections and fixture-only evidence.
+The three silent H.264 MP4 recordings are complete. See the [submission index](../README.md) for contents, duration, size, workflow outcomes and limitations, and [manifest](manifest.json) for exact metadata and checksums.
+
+- [Complete walkthrough](eventops-complete-walkthrough.mp4)
+- [Part 1 — RAG](eventops-rag-demonstration.mp4)
+- [Part 2 — agent verification](eventops-agent-verification.mp4)

@@ -1,7 +1,13 @@
 const base = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+
+// Regular expression pattern to validate UUIDs, ensuring they follow the standard format of 8-4-4-4-12 hexadecimal characters.
 export const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// This function takes an error object and returns a user-friendly error message based on the
+// error's content. It checks for specific error messages related to PostgreSQL and connection
+// issues, providing a more understandable message for the user. If the error does not match any
+// known patterns, it returns the original error message.
 export function validationMessage(detail) {
   if (typeof detail === "string") return detail;
   if (Array.isArray(detail))
@@ -14,6 +20,9 @@ export function validationMessage(detail) {
   return "The request could not be completed.";
 }
 
+// This function sends an HTTP request to the backend API, handling timeouts, retries for specific
+// cases, and error responses. It supports GET and POST methods, allows for request cancellation
+// via an AbortSignal, and can return either JSON or blob data based on the `blob` parameter.
 export async function request(
   path,
   { body, signal, timeout = 90000, blob = false } = {},
@@ -27,6 +36,7 @@ export async function request(
     timedOut = true;
     controller.abort();
   }, timeout);
+
   try {
     let response;
     // Retry only an explicitly unavailable read, never a session/run/message write.
@@ -38,19 +48,27 @@ export async function request(
           ...(body === undefined ? {} : { "Content-Type": "application/json" }),
           ...(typeof window !== "undefined" &&
           sessionStorage.getItem("eventops-demo-token")
-            ? { "X-Demo-Session": sessionStorage.getItem("eventops-demo-token") }
+            ? {
+                "X-Demo-Session": sessionStorage.getItem("eventops-demo-token"),
+              }
             : {}),
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
       });
-      if (!(body === undefined && response.status === 503 && attempt === 0) || controller.signal.aborted) break;
+      if (
+        !(body === undefined && response.status === 503 && attempt === 0) ||
+        controller.signal.aborted
+      )
+        break;
     }
+
     if (!response.ok) {
       if (response.status >= 500)
         throw new Error(
           "The backend could not complete this request. Check the API and PostgreSQL, then try again.",
         );
+
       const payload = await response.json().catch(() => ({}));
       if (response.status === 401 && typeof window !== "undefined")
         window.dispatchEvent(new Event("eventops-session-expired"));
@@ -62,17 +80,20 @@ export async function request(
           : validationMessage(payload.detail),
       );
     }
+
     return blob ? await response.blob() : await response.json();
   } catch (error) {
     if (timedOut)
       throw new Error(
         "The request timed out. It may still finish on the server. Reload the conversation before submitting again.",
       );
+
     if (controller.signal.aborted) throw error;
     if (error instanceof TypeError)
       throw new Error(
         "Cannot reach the backend. Check your connection and try again; the service may be waking up.",
       );
+
     throw error;
   } finally {
     clearTimeout(timer);
@@ -80,6 +101,7 @@ export async function request(
   }
 }
 
+// API functions for interacting with the backend, including starting a demo session, managing connections, retrieving sources, handling runs, checking health, and managing conversations.
 export const api = {
   startDemo: () => request("/api/demo/session", { body: {} }),
   connections: (signal) => request("/api/agents/connections", { signal }),

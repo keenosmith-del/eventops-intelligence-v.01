@@ -43,7 +43,6 @@ export default function Evidence({ records = [], messageId }) {
                 <dd>{record.document_id}</dd>
               </div>
             </dl>
-
           </div>
         </details>
       ))}
