@@ -1,6 +1,6 @@
 # EventOps deployment
 
-Production verified **11 October 2026 (Africa/Johannesburg)**: both Render services are live at `6128bd1`, Neon is authorized and connected, and acceptance is **Partial Pass**. See the [live acceptance report](PRODUCTION_ACCEPTANCE_REPORT.md), [current status](DEPLOYMENT_STATUS.md) and [release checklist](PRODUCTION_CHECKLIST.md). Setup instructions below are for future reprovisioning, not pending actions.
+Production verified **11 October 2026 (Africa/Johannesburg)**: both services individually deployed implementation `428bd35`; requested functional assessment workflows pass, including real Mailtrap registration cases and one bounded generated Gemini answer. Generation returns to disabled after the demonstration. See the [live acceptance report](PRODUCTION_ACCEPTANCE_REPORT.md), [current status](DEPLOYMENT_STATUS.md) and [release checklist](PRODUCTION_CHECKLIST.md). Setup instructions below are for future reprovisioning.
 
 ## Architecture and isolation
 
@@ -96,7 +96,7 @@ Browser checks: landing/mascots, Start → reviewer → real session, five views
 
 ## Integration/security limits
 
-Default Calendar/Web observations are real public holidays, unrelated to fictional EVT registrations; missing references must stay flagged. Configured variables are not connection proof. This task verified actual Calendar/Web reads locally through LangGraph. Mailtrap was disabled; earlier empty-inbox evidence cannot prove hosted connectivity/message processing. Gemini retains bounded generation/citation validation and opt-in behavior.
+Default Calendar/Web observations are real public holidays, unrelated to fictional EVT registrations; missing references must stay flagged. Configured variables are not connection proof. The final pass verified Calendar/Web and all three prepared Mailtrap messages through production LangGraph. Ada verified/duplicate and Lindi inactive/conflict cases passed; do not resend the prepared messages. Gemini retains bounded generation/citation validation and opt-in behavior.
 
 The [inactive n8n handoff](../../automations/n8n/README.md) and protected idempotent endpoints exist. Runtime import/credentials/webhook/cloud execution are unverified. No mandatory n8n service was added; LangGraph works independently.
 

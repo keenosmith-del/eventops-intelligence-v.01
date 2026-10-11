@@ -1,6 +1,8 @@
 # Production acceptance — 11 October 2026
 
-**Production status: Partial Pass.** The deployed reviewer journey, retrieval, real LangGraph tool reads, persisted results, CSV downloads and history work. Full assessment completion is not established: Mailtrap is empty, no live positive verification/conflict case was produced, Gemini generation was not requested, and n8n is unconfigured. Hosted memory headroom and idle wake-up remain unmeasured. Two reproducible behavior defects are recorded below; no implementation or provider configuration was changed to pass checks.
+**Final functional assessment status: Pass for the requested workflows.** The final assessment addendum below supersedes the original findings: real Mailtrap positive/duplicate/conflict scenarios and one real generated Gemini answer now pass. CSV/replay and restored generation-status defects are corrected. Cold-start reliability and the historical transient error cause remain operational caveats.
+
+**Original acceptance status: Partial Pass (historical).** The deployed reviewer journey, retrieval, real LangGraph tool reads, persisted results, CSV downloads and history work. Full assessment completion is not established: Mailtrap is empty, no live positive verification/conflict case was produced, Gemini generation was not requested, and n8n is unconfigured. Hosted memory headroom and idle wake-up remain unmeasured. Two reproducible behavior defects are recorded below; no implementation or provider configuration was changed to pass checks.
 
 Test window: approximately 08:25–08:44 Africa/Johannesburg (UTC+2). Evidence was obtained through actual Chrome and an independent Codex in-app Chromium context, public HTTP requests, signed-in Render/GitHub dashboards and read-only Neon SQL. Provider browser authorization was available; the separate gh CLI token is invalid. No keys, tokens or database URLs were printed. Only acceptance conversations, one bounded execution and its exports were created. No reset, deletion, migration execution, restart, deployment, paid resource, model generation, commit or push was performed.
 
@@ -114,10 +116,52 @@ For the present reviewer demonstration: Start → Enter workspace → exact EVT-
 
 Existing local regression results remain historical (210 backend passes/1 skip, 12 frontend unit passes, 24 production-preview browser passes/3 live skips). No new local regression suite was needed for documentation-only changes; successful current CI is separately verified. None of those results proves a live skipped integration. No deployment provisioning blocker remains; the remaining blockers are full demonstration coverage and the explicitly unverified reliability/integration requirements above.
 
-## Final assessment improvement pass — in progress
+## Final assessment improvement pass — 11 October 2026
 
 The findings above describe the original acceptance revision, not the final improvements. Targeted fixes now remove CSV downloads from execution timing, persist generation outcomes for restored exchanges, separate list-loading errors from run-detail errors, allow bounded unavailable-read recovery, and admit reviewer sessions atomically. Short reviewer guidance preserves the existing visual language.
 
-Local validation: 217 backend tests passed, one opt-in live integration test skipped; isolated disposable PostgreSQL on port 55433, separate from development on 55432 and Neon. Frontend validation and production deployment verification are pending in this pass.
+Local validation: 217 backend tests passed, one opt-in live integration test skipped; isolated disposable PostgreSQL on port 55433, separate from development on 55432 and Neon. Frontend validation: 16 unit tests passed; production build passed (nonfatal 507 KB chunk warning); 25 browser regressions passed, three opt-in live tests skipped. The preview server required sandbox permission to bind its loopback port; the approved rerun passed. These are local regression results, not proof of hosted integrations.
 
-The owner submitted the three prepared synthetic registration messages through sandbox SMTP, once each. Actual Mailtrap API read confirmed IDs 5748068714 (positive), 5748076082 (duplicate), and 5748076401 (inactive-conflict). This proves retrieval; production LangGraph outcomes remain pending until the new revision is deployed. No further submission is required.
+The owner submitted the three prepared synthetic registration messages through sandbox SMTP, once each. Actual Mailtrap API read confirmed IDs 5748068714 (positive), 5748076082 (duplicate), and 5748076401 (inactive-conflict). Production LangGraph run `ef50214e-9ec1-4903-a80c-ada28ca7d5cb` completed at approximately 09:17:43–09:17:56 UTC+2 with `real_https_read_only` mode and all three tools completed. No further submission is required.
+
+### Real production verification and regression results
+
+Implementation commit: `428bd3522ea86f3d504ef694113de1863fc15351`. [CI run 38120655085](https://github.com/keenosmith-del/eventops-intelligence-v.01/actions/runs/38120655085) completed successfully. Individual Render releases: frontend `dep-db5jf2bbc2fs738q94b0` (30.4 seconds), backend `dep-db5jf2bbc2fs738q93ug` (2m04s), both confirmed on the implementation SHA. Startup validated 19 reference records with zero changed rows and zero pending embeddings. Existing Neon records were preserved.
+
+| Production check | Actual outcome |
+| --- | --- |
+| Mailtrap extraction | Three real API messages fetched, with the exact subjects and controlled synthetic marker. The production email stage records three messages read. |
+| Extraction / normalization | 13 observed claims: Calendar 5, Email 3, Web 5. All 13 normalized; lowercase `evt-101` becomes EVT-101 and uppercase email becomes lowercase. Raw source bodies remain available. |
+| Positive registration | Ada Mensah / ada.mensah@example.com verified against active P-001 and registered EVT-101. All six field checks pass. No discrepancies. |
+| Duplicate registration | Ada's two messages become one verified saved record with duplicate_count 1 and both IDs 5748076082 / 5748068714 retained in evidence. No input message deleted or resent. |
+| Inactive/conflict | Lindi Mokoena-Test / lindi.mokoena@example.com: review_required with inactive_participant and name_mismatch. P-003 is inactive; actual reference name is Lindi Mokoena. EVT-101 registration and identity pass while active/name checks fail. Evidence links the observed message and actual directory/events records. |
+| Public Calendar/Web observations | Five holiday records remain review_required / missing_event_id. Their five cross-source duplicates merge independently of the synthetic assessment registrations. |
+| Persisted summary | Seven saved records: one verified, six flagged, six total duplicates merged (five holidays plus one Ada). All ten processing stages completed; PostgreSQL persistence records seven. |
+| Verification Results / Execution History | Dedicated production views list and reopen the completed run. Refresh and backend environment restarts preserve the original reviewer session, old run and new run. |
+| Actual browser CSV downloads | All export has seven rows / 12 columns; verified export has one Ada row. Names, statuses, event IDs, duplicates, issues, authoritative IDs and all three email provenance IDs match the saved visible outcomes. This is actual downloaded content, not a mocked response. |
+| CSV/replay correction | Exports leave saved processing/finish times unchanged in refreshed UI; new run replay is 11.813 seconds after downloads. Legacy 0920399b replay is 10.733 seconds instead of 417.16 seconds, despite retained old export timestamps. CSV shows outside_replay only during replay and explicitly remains outside the recorded timeline. |
+| RAG retrieval | Fresh production conversation 2e385686-4e55-4ba2-8505-081e4e3cbaf9 returns POL-003 at similarity 0.862 and 08:45 South Africa Standard Time. Its citation is the real policies.csv#policy_id=POL-003. |
+| Restored generation status | Initial not_requested exchange and a generation request while server-disabled remain respectively evidence-only and unavailable after refresh/restart. Original acceptance exchanges lacking historical status now honestly state no saved generation outcome. |
+| Reviewer/session/list reliability | Fresh production session POST returns 200; six list reads (three conversation + three execution reads) all return 200. A different reviewer's attempt to read the final run returns 404. Later fresh entries also return 200. No new transient failure reproduced during these probes. |
+
+Transient errors remain an availability caveat: the initial acceptance did not preserve the underlying exception, so it cannot establish a historical root cause. Session admission now uses one database transaction/connection and rolls back failed quota consumption; client GET 503 recovery is bounded to one retry, with a 90-second cold-start allowance; writes are never automatically retried. List failures are reported independently from selected-run failures. Safe backend diagnostics log method/operation and exception class only. These mitigation paths have regression coverage; the earlier provider/database cause is not claimed to be conclusively fixed.
+
+Synthetic registrations and real public observations are explicitly identified separately. Authoritative directory and event values were used unchanged. Development remains on Docker PostgreSQL port 55432; isolated regression data used 55433; production continues to use Neon. No credential/source changes, paid resource creation, billing activation, destructive migrations or n8n enablement occurred.
+
+### Bounded generative RAG demonstration
+
+The configured model is `gemini-3.5-flash-lite`, with at most five retrieved records (800 characters each), 512 output tokens and one 20-second provider request, with no retry or paid fallback. Existing AI Studio project My First Project showed Free tier, zero observed model usage and limits 15 RPM / 250K TPM / 500 RPD. No billing/prepayment setup or new credential was created.
+
+The first temporary dashboard save did not retain the requested true flag; production config still returned false. The 09:21 exchange correctly returned unavailable without calling the provider. The flag was corrected through the existing dashboard, and a fresh actual production config check returned generation_enabled true before the real model test. This prevents counting a disabled-path request as generation.
+
+At approximately 09:27 UTC+2, one actual opt-in production request in conversation `2e385686-4e55-4ba2-8505-081e4e3cbaf9` generated: “Check-in for EVT-101 closes at 08:45 South Africa Standard Time.” The saved answer is labelled AI-generated answer / gemini-3.5-flash-lite and cites POL-003 at `data/structured/policies.csv#policy_id=POL-003`. The citation is exactly the retrieved record, not an invented source. Earlier evidence-only and unavailable exchanges remain labelled distinctly. Refresh restores the generated answer and citation. The operational setting is returned to generation-disabled for the final deployment; future live generation requires an explicit enablement after confirming the same free-tier account/quota. The saved generated answer remains reviewable without another model call.
+
+### Recommended reviewer demonstration
+
+1. Continue as reviewer. Knowledge Assistant: select “What time does check-in close for EVT-101?”, submit with generation unchecked, and inspect POL-003 / 08:45. In the existing owner reviewer session, open the saved assessment conversation to show the genuine generated answer, model name and matching citation. New anonymous sessions cannot access another reviewer's conversation.
+2. Agent Workspace: choose EVT-101 and five records per source; run once only if a new reviewer needs a run in their own session. The three existing Mailtrap messages are read, never sent again. Observe actual processing states and completed 13 → 7 counts. Keep the prepared messages as the newest three because email reads are capped at three.
+3. Verification Results: open the completed execution. Inspect Ada's active P-001/EVT-101 match, duplicate_count 1 and both message references. Inspect Lindi's P-003 inactive status/name mismatch. Explain the five separate real public-holiday flags.
+4. Export all CSV (seven rows) and verified CSV (one Ada row). Table filters do not change the export's saved-record scope.
+5. Execution History: reopen the completed run, replay the recorded stages, return to complete and refresh. CSV downloads remain outside the replay; saved results and reviewer isolation persist.
+
+No remaining functional blocker was found for these assessment paths. New Gemini generation is intentionally disabled after the one bounded demonstration. n8n remains optional/unconfigured and outside this final improvement scope. Full idle cold-start, memory headroom, long-duration soak and historical transient-error root cause remain unverified; successful warm probes do not prove those conditions.

@@ -22,6 +22,8 @@ Uppercase email/lowercase event exercise normalization. Directory and events.csv
 
 An already-authorized sandbox-send API credential can use `POST https://sandbox.api.mailtrap.io/api/send/4953522`, one JSON object per request. `scripts/prepare-mailtrap-assessment.py --submit` fixes this endpoint/ID and stops on the first unconfirmed result, without retries. **The existing local application's token returned HTTP 401 on insertion attempt one; zero messages were submitted. Do not repeat with that token.** Manual SMTP uses the owner's existing integration. No credential expansion is requested.
 
-Never use send.api.mailtrap.io, bulk delivery, real recipients or forwarding. No inbox cleanup. Owner submission is pending. Offline pipeline regression proves expected outcomes against actual references, not live Mailtrap ingestion.
+Never use send.api.mailtrap.io, bulk delivery, real recipients or forwarding. No inbox cleanup. Owner submission is complete. Do not resend. Production run `ef50214e-9ec1-4903-a80c-ada28ca7d5cb` retrieved all three messages, verified Ada against P-001/EVT-101, merged her duplicate with both message references, and flagged Lindi against inactive P-003 with a name mismatch. See the production acceptance report for actual saved outcomes and CSV/replay checks.
 
 References: [Sandbox send API](https://docs.mailtrap.io/developers/email-sandbox/send-test-emails), [Sandbox integration](https://docs.mailtrap.io/email-sandbox/setup/sandbox-api-integration).
+
+The standalone owner-operated sender is `python3 scripts/send_mailtrap_tests.py`; `--start-at 2` skips message 1 entirely. It prompts for credentials without storing them, spaces submissions 11 seconds apart, and stops on an error without retrying. It was used successfully; no further sending is needed.
