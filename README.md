@@ -1,5 +1,7 @@
 # EventOps Intelligence v.01
 
+Ongoing development uses this original v.01 checkout on local `main`. See [post-submission iteration documentation](docs/iterations/post-submission/README.md) for Phase 1 changes, historical baseline tags, validation and the remaining milestones.
+
 Inference Group AI Engineering assessment: an integrated React workspace for structured RAG and bounded, observable event verification tooling. **v.02 is out of scope.**
 
 ## Current status

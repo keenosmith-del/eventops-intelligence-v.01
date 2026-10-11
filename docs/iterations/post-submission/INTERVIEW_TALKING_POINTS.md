@@ -1,6 +1,6 @@
 # Interview talking points
 
-- Preserved the assessed version with a Git worktree and isolated local DB/ports rather than modifying production in place.
+- Initially isolated Phase 1, then adapted to the corrected single-repository requirement: fast-forwarded exact commits into original main, preserved the assessed revisions with annotated tags, restored existing local settings and retired the temporary worktree only after regression validation.
 - Audited existing behavior before extending it; backend capabilities already met many requirements, so the first increment concentrated on interaction defects and cross-page context.
 - Replaced unconditional chat scrolling with a reader-controlled question anchor and explicit latest action; tested geometry rather than just checking a button exists.
 - Kept the established mascot/palette, softened overlay edges using a masked backdrop blur, and maintained a visible keyboard focus cue.

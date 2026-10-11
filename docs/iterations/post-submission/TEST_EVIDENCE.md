@@ -1,5 +1,9 @@
 # Validation evidence — 11 October 2026
 
+## Historical Phase 1 checks in the temporary environment
+
+The following evidence describes the initial Phase 1 setup. Its temporary ports/database are historical; current development uses original v.01 settings documented below.
+
 All database-backed checks target only `127.0.0.1:55433`, database `eventops_next`. Gemini is disabled and no email sending occurred. Production was not accessed or modified.
 
 | Check | Command / context | Result |
@@ -23,3 +27,24 @@ The live agent check created run `6331164e-d1dc-411a-b60f-d0d9047b0303`, perform
 The independent local DB contains test/live-run data only. Backend assessment tests cover positive/duplicate/inactive/conflicting inputs using their explicit test adapters. No new real Mailtrap message or paid Gemini outcome is claimed.
 
 Initial setup surfaced a stopped Docker daemon, missing bundled browser executable, duplicate development reads, ambiguous repeated-title live selectors and an outdated export-stage expectation. Each was resolved before final checks. A test invocation from the repository root failed imports; the documented/backend-directory invocation passes.
+
+
+## Consolidation validation in original v.01
+
+Current checkout: `/Users/keenosmith/Programming/Projects/inference-group/eventops-intelligence-v.01`, branch `main`. Original local database port 55432, original credentials and existing `eventops-intelligence-v01_postgres_data` volume. Production URLs/configuration were not used for database validation.
+
+- `docker compose up -d --wait`: original container healthy, existing volume reused.
+- Backend migration runner: no new migrations required. Indexing: 19 records, 19 embeddings, zero changed records and zero pending embeddings.
+- In backend, `GEMINI_ENABLED=false .venv/bin/python -m pytest -q --tb=no`: **217 passed, 1 skipped in 2.14s**.
+- In frontend, `npm test`: **16 passed**. `npm run build`: **passed**, existing bundle size warning retained.
+- `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`: **29 passed, 3 opt-in skips in 21.2s**. Covers UUID popover, chat scrolling/blur/clearance, latest and clipboard actions, preserved context/navigation and refresh.
+- `RUN_LIVE_API=true RUN_LIVE_ENTRY=true PLAYWRIGHT_CHANNEL=chrome npm run test:e2e -- --grep 'live Journey B|real API:|real reviewer API'`: **3 passed in 11.2s**, actual frontend at 5173 communicating with original local backend at 5050.
+- Live agent run: `a75a9d88-08c2-43dc-8637-55af7a722959`; tool reads, field comparison, CSV/API consistency, history restoration and unchanged saved stages/results verified.
+- Live knowledge conversation: `dc150b8c-4888-4d45-b404-0e002e0f1236`; four persistent messages, POL-003 contextual citation, UUID/history/refresh verification. Generation unavailable as expected with Gemini disabled; no paid model call or email sending.
+- Three submission recording SHA-256 values match the original manifest. `docs/submission/`, backend and Render configuration match the pre-iteration baseline. Phase 1 frontend source matches `5719f7a` exactly.
+- Both worktrees were clean before integration; main had no commits after their shared ancestor. Fast-forward retained `52b9def` and `5719f7a`; no cherry-pick duplicates or history rewrites.
+- Corrected live CSV assertion to count records with actual missing-field issues, rather than assuming every real provider observation is incomplete. Consolidation screenshots are saved under `evidence/consolidation/`, preserving earlier evidence.
+
+Sandbox-only attempts to bind/connect localhost were denied; rerunning with approved local network access completed the checks above. No application defect was inferred from those sandbox failures.
+
+Temporary `.env` is preserved in ignored `storage/retired-environments/phase1.env` (mode 0600); original `.env` was not overwritten. Dependency installations, caches and transient test outputs are reproducible ignored artifacts, not untransferred source work. The temporary database volume remains intact. Phase 2 has not begun.

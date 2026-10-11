@@ -1,6 +1,8 @@
 # Submitted baseline
 
-Source commit: `93379eafd445705b0ca678d906031d6f6d0305d5`, clean local main at isolation. origin/main resolves to the same commit. A fresh remote fetch and deployed artifact fingerprint were not performed; this identifies the repository baseline, not an independently confirmed production image.
+Pre-iteration repository commit: `93379eafd445705b0ca678d906031d6f6d0305d5`, annotated tag `pre-iteration-v0.1`. This clean main snapshot contains the final submission documentation and three walkthrough recordings.
+
+The submission README and recording manifest identify `7cc65680950fba53caf302c8fe3a8eadb21b0225` as the demonstrated assessment release; annotated tag `assessment-demonstrated-v0.1` preserves that revision. The acceptance README also names its underlying implementation commit `428bd35`. No delivery timestamp or exact submitted archive revision is independently established, so neither tag is misleadingly named assessment-submission. A fresh production fingerprint was not performed.
 
 Architecture: React 19/Vite; FastAPI/Python 3.12; PostgreSQL/pgvector; 384-dimensional FastEmbed retrieval; optional Gemini generation; persisted conversations; LangGraph verification; Calendar/Web read-only HTTP sources and server-configured Mailtrap sandbox; Neon/Render production configuration retained.
 

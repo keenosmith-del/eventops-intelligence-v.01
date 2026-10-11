@@ -275,25 +275,25 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
   }
   await expect(page.getByRole("heading", { name: "Field-level verification decisions" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Raw extracted values" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "CSV analysis" })).toContainText(`${stored.summary.total} records with missing fields`);
+  await expect(page.getByRole("region", { name: "CSV analysis" })).toContainText(`${stored.results.filter(record => record.issues.some(issue => issue.startsWith("missing_"))).length} records with missing fields`);
   await page.locator(".flow-surface").scrollIntoViewIfNeeded();
   for (const node of nodes) await expect(page.locator(`.react-flow__node[data-id="${node}"]`)).toBeVisible();
   await expect(page.locator('.react-flow__node[data-id="email"]')).toBeInViewport();
-  await page.locator(".flow-surface").screenshot({ path: "../docs/iterations/post-submission/evidence/part2-graph-desktop.png" });
-  await page.screenshot({ path: "../docs/iterations/post-submission/evidence/part2-agent-desktop.png", fullPage: true });
+  await page.locator(".flow-surface").screenshot({ path: "../docs/iterations/post-submission/evidence/consolidation/part2-graph-desktop.png" });
+  await page.screenshot({ path: "../docs/iterations/post-submission/evidence/consolidation/part2-agent-desktop.png", fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator(".flow-surface").scrollIntoViewIfNeeded();
   for (const node of nodes) await expect(page.locator(`.react-flow__node[data-id="${node}"]`)).toBeVisible();
   await expect(page.locator('.react-flow__node[data-id="email"]')).toBeInViewport();
-  await page.locator(".flow-surface").screenshot({ path: "../docs/iterations/post-submission/evidence/part2-graph-mobile.png" });
-  await page.screenshot({ path: "../docs/iterations/post-submission/evidence/part2-agent-mobile.png", fullPage: true });
+  await page.locator(".flow-surface").screenshot({ path: "../docs/iterations/post-submission/evidence/consolidation/part2-graph-mobile.png" });
+  await page.screenshot({ path: "../docs/iterations/post-submission/evidence/consolidation/part2-agent-mobile.png", fullPage: true });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto(`/verification/${runId}`);
   await expect(page.getByRole("button", { name: "Inspect record" }).first()).toBeVisible();
-  await page.screenshot({ path: "../docs/iterations/post-submission/evidence/part2-results-desktop.png", fullPage: true });
+  await page.screenshot({ path: "../docs/iterations/post-submission/evidence/consolidation/part2-results-desktop.png", fullPage: true });
   await page.getByRole("link", { name: "Knowledge sources" }).click();
   await expect(page.getByText("19 total records", { exact: false })).toBeVisible();
-  await page.screenshot({ path: "../docs/iterations/post-submission/evidence/part2-sources-desktop.png", fullPage: true });
+  await page.screenshot({ path: "../docs/iterations/post-submission/evidence/consolidation/part2-sources-desktop.png", fullPage: true });
   await page.getByRole("link", { name: "Execution history", exact: true }).click();
   await page
     .getByRole("button", { name: new RegExp(runId.slice(0, 8)) })
@@ -307,7 +307,7 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
   expect(restored.results).toEqual(stored.results);
   console.log("LIVE_AGENT_RUN=" + runId);
   await page.screenshot({
-    path: "../docs/iterations/post-submission/evidence/part2-history-desktop.png",
+    path: "../docs/iterations/post-submission/evidence/consolidation/part2-history-desktop.png",
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -317,7 +317,7 @@ test("live Journey B: real tools, graph, persisted flags, export and history", a
     ),
   ).toBe(true);
   await page.screenshot({
-    path: "../docs/iterations/post-submission/evidence/part2-history-mobile.png",
+    path: "../docs/iterations/post-submission/evidence/consolidation/part2-history-mobile.png",
     fullPage: true,
   });
 });

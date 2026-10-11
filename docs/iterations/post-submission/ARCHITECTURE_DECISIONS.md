@@ -1,6 +1,6 @@
 # Architecture decisions
 
-## Isolate the iteration
+## Initial isolation (superseded by owner correction)
 
 Problem: maintain the submitted demonstration while changing behavior. Options: edit main, copy a repository, or Git worktree. Selected: dedicated worktree on the explicitly requested branch, independent Compose project/volume/ports and new credentials. This preserves comparison and avoids production data coupling. Consequence: separate dependency installations and local setup.
 
@@ -23,3 +23,9 @@ Problem: moving from an answered event to verification loses its context. Select
 ## Preserve export timing semantics
 
 Problem: an old live test assumed downloading CSV completes a stored graph stage. Selected: assert unchanged saved stage timestamps and result records after downloads/history restoration, matching the existing API and iteration requirements. No fabricated execution stage or replay timing is introduced.
+
+## Consolidate into the existing repository
+
+Problem: the temporary external directory was based on an incorrect structure requirement. Options: cherry-pick, copy files, or fast-forward the original main. Selected: fast-forward because both working trees were clean and main was an ancestor of the two Phase 1 commits. This preserves exact commit identities and newer submission assets without duplicated commits.
+
+Restore original local runtime configuration while retaining credentials/volumes. Preserve comparisons with annotated historical tags, not duplicate application directories. The recorded assessment release and later repository baseline are distinguished explicitly. Trade-off: main is now the development branch; every production-triggering push requires owner confirmation. The obsolete worktree is removed only after full verification; its branch and local database volume remain.

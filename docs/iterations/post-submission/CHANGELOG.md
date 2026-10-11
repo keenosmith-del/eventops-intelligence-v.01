@@ -16,3 +16,9 @@ Isolated main in `feature/post-submission-evolution` at the requested next-itera
 - Added browser regressions for popover geometry/dismissal, question anchoring, latest navigation, blur/focus, mobile width, context preservation and clipboard operation. Updated opt-in live selectors and assertions to verify saved state remains unchanged after export/history.
 
 Modified implementation files: `compose.yaml`, `.env.example`, frontend Vite/Playwright settings, WorkspaceSidebar, KnowledgeAssistant, Exchange, KnowledgeSources, AgentWorkspace, workspace-redesign.css, workspace/agent browser suites. Documentation resides here. No runtime response fixtures were added; fixtures are confined to automated tests.
+
+## Consolidation — 11 October 2026
+
+The owner corrected the development structure: one evolving application in the original v.01 repository. Both checkouts were clean; no main commits followed the shared ancestor. Fast-forward integration preserved the original Phase 1 commits without cherry-pick duplicates. Restored the original Compose identity, Vite/Playwright ports and example environment; original credentials and volumes remain untouched. Added accurate assessment-demonstrated and pre-iteration tags, updated future instructions and documentation links. No Phase 2 work or remote push occurred. Temporary ignored local settings are preserved outside Git, and the temporary database volume is retained.
+
+Consolidation validation passed: 217 backend / 16 frontend unit / 29 browser regression / 3 live checks and build. Original recording checksums verified. Corrected the live missing-field count assertion for real provider data and saved new evidence in a separate consolidation subfolder.

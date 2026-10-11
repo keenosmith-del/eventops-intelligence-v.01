@@ -1,5 +1,3 @@
-name: eventops-next-iteration
-
 
 services:
   db:
@@ -11,7 +9,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
 
     ports:
-      - "127.0.0.1:${POSTGRES_PORT:-55433}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql/data
