@@ -160,10 +160,30 @@ def test_prepared_mailtrap_cases_use_authoritative_identities(run):
     """Offline regression for prepared payloads, not a live-provider claim."""
     import json
     from pathlib import Path
-    payloads = json.loads((Path(__file__).resolve().parents[2] / "docs/testing/mailtrap/final-assessment.json").read_text())
+
+    payloads = json.loads(
+        (
+            Path(__file__).resolve().parents[2]
+            / "docs/testing/mailtrap/final-assessment.json"
+        ).read_text()
+    )
     adapters = fake_adapters()
-    adapters["web"] = lambda limit: {"source_reference": "https://example.com/explicit-offline-test", "body": "[]"}
-    adapters["email"] = lambda limit: {"source_reference": "explicit-offline-test", "messages": [{"id": str(i), "subject": p["subject"], "body": p["text"], "source_reference": f"explicit-offline-test/{i}"} for i, p in enumerate(payloads)]}
+    adapters["web"] = lambda limit: {
+        "source_reference": "https://example.com/explicit-offline-test",
+        "body": "[]",
+    }
+    adapters["email"] = lambda limit: {
+        "source_reference": "explicit-offline-test",
+        "messages": [
+            {
+                "id": str(i),
+                "subject": p["subject"],
+                "body": p["text"],
+                "source_reference": f"explicit-offline-test/{i}",
+            }
+            for i, p in enumerate(payloads)
+        ],
+    }
     execute(run["id"], "EVT-101", 5, adapters=adapters)
     restored = store.get_run(run["id"])
     assert restored["summary"]["verified"] == 1
@@ -172,12 +192,15 @@ def test_prepared_mailtrap_cases_use_authoritative_identities(run):
     ada = next(r for r in restored["results"] if r["email"] == "ada.mensah@example.com")
     assert ada["status"] == "verified" and ada["duplicate_count"] == 1
     assert {m["record_id"] for m in ada["matches"]} == {"EVT-101", "P-001"}
-    inactive = next(r for r in restored["results"] if r["email"] == "lindi.mokoena@example.com")
+    inactive = next(
+        r for r in restored["results"] if r["email"] == "lindi.mokoena@example.com"
+    )
     assert {"inactive_participant", "name_mismatch"}.issubset(inactive["issues"])
 
 
 def test_failed_session_insert_rolls_back_session_budget(monkeypatch):
     from app.core import demo
+
     token = "explicit-test-only-" + str(uuid4())
     monkeypatch.setattr(demo.secrets, "token_urlsafe", lambda size: token)
     monkeypatch.setenv("DEMO_SESSION_LIMIT", "10000")
@@ -185,11 +208,19 @@ def test_failed_session_insert_rolls_back_session_budget(monkeypatch):
     first = client.post("/api/demo/session")
     assert first.status_code == 200
     with connect_db() as connection, connection.cursor() as cursor:
-        cursor.execute("SELECT requests FROM demo_usage WHERE bucket='sessions' AND day=CURRENT_DATE")
+        cursor.execute(
+            "SELECT requests FROM demo_usage WHERE bucket='sessions' AND day=CURRENT_DATE"
+        )
         admitted = cursor.fetchone()[0]
     assert client.post("/api/demo/session").status_code == 503
     with connect_db() as connection, connection.cursor() as cursor:
-        cursor.execute("SELECT requests FROM demo_usage WHERE bucket='sessions' AND day=CURRENT_DATE")
+        cursor.execute(
+            "SELECT requests FROM demo_usage WHERE bucket='sessions' AND day=CURRENT_DATE"
+        )
         assert cursor.fetchone()[0] == admitted
         import hashlib
-        cursor.execute("DELETE FROM demo_sessions WHERE token_hash=%s", (hashlib.sha256(token.encode()).hexdigest(),))
+
+        cursor.execute(
+            "DELETE FROM demo_sessions WHERE token_hash=%s",
+            (hashlib.sha256(token.encode()).hexdigest(),),
+        )

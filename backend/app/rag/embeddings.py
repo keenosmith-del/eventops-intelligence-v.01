@@ -19,7 +19,7 @@ class LocalEmbeddingModel:
         )
 
     # Instead of allowing every module to call the model directly,
-    # we provide a method to embed documents. This ensures that all embeddings are
+    # provide a method to embed documents. This ensures that all embeddings are
     # generated in a consistent manner and allows for additional validation or preprocessing if needed.
     def embed_documents(self, texts: list[str]) -> np.ndarray:
         if not texts or any(
@@ -33,7 +33,7 @@ class LocalEmbeddingModel:
             expected_count=len(texts),
         )
 
-    # Similarly, we provide a method to embed queries. This ensures that query embeddings are generated
+    # Similarly, provide a method to embed queries. This ensures that query embeddings are generated
     # consistently and allows for validation or preprocessing.
     def embed_query(self, query: str) -> np.ndarray:
         if not isinstance(query, str) or not query.strip():

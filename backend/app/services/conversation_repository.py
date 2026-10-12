@@ -63,7 +63,10 @@ class ConversationRepository:
 
             row = cursor.fetchone()
             if self.session_id:
-                cursor.execute("INSERT INTO demo_objects (object_id, session_id, kind) VALUES (%s, %s, 'conversation')", (row['id'], self.session_id))
+                cursor.execute(
+                    "INSERT INTO demo_objects (object_id, session_id, kind) VALUES (%s, %s, 'conversation')",
+                    (row["id"], self.session_id),
+                )
 
         return Conversation.model_validate(row)
 
@@ -256,7 +259,12 @@ class ConversationRepository:
 
     def set_generation_status(self, message_id: int, status: str) -> None:
         """Correct the retrieval outcome if generated-answer validation rejects it."""
-        if status not in {"not_requested", "generated", "unavailable", "insufficient_evidence"}:
+        if status not in {
+            "not_requested",
+            "generated",
+            "unavailable",
+            "insufficient_evidence",
+        }:
             raise ValueError("Invalid generation status")
         with self.connection.cursor() as cursor:
             cursor.execute(
@@ -273,6 +281,7 @@ class ConversationRepository:
     ) -> ConversationMessage:
         """Persist an answer tied to the latest retrieval."""
 
+        # Validate the answer, model, and citations
         if not isinstance(answer, str) or not answer.strip() or len(answer) > 1200:
             raise ValueError("Answer must contain 1 to 1200 characters")
 
@@ -291,6 +300,7 @@ class ConversationRepository:
             record_id = citation.get("record_id")
             source = citation.get("source_reference")
 
+            # Validate that the citation contains both a record ID and a source reference
             if not (
                 isinstance(record_id, str)
                 and record_id.strip()

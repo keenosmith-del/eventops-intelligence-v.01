@@ -7,10 +7,7 @@
       "name": "Protected trigger",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [
-        0,
-        0
-      ],
+      "position": [0, 0],
       "parameters": {
         "httpMethod": "POST",
         "path": "eventops-verification",
@@ -29,10 +26,7 @@
       "name": "Start verification",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        240,
-        0
-      ],
+      "position": [240, 0],
       "parameters": {
         "method": "POST",
         "url": "http://host.docker.internal:5050/api/integrations/n8n/runs",
@@ -56,10 +50,7 @@
       "name": "Wait before status",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [
-        480,
-        0
-      ],
+      "position": [480, 0],
       "parameters": {
         "resume": "timeInterval",
         "amount": 2,
@@ -71,10 +62,7 @@
       "name": "Read saved execution",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        720,
-        0
-      ],
+      "position": [720, 0],
       "parameters": {
         "url": "={{ 'http://host.docker.internal:5050/api/integrations/n8n/runs/' + $('Start verification').first().json.id }}",
         "authentication": "genericCredentialType",
@@ -94,10 +82,7 @@
       "name": "Bound polling",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        960,
-        0
-      ],
+      "position": [960, 0],
       "parameters": {
         "jsCode": "const run = $input.first().json;\nif (!['pending','running','completed','partial','failed'].includes(run.status)) throw new Error('Unexpected backend execution status.');\nif (run.id !== $('Start verification').first().json.id) throw new Error('Execution ID mismatch.');\nif (['pending','running'].includes(run.status) && $runIndex >= 29) throw new Error('Polling bound reached. Reopen the saved execution; do not resubmit with a new delivery key.');\nreturn [{ json: run }];"
       }
@@ -107,10 +92,7 @@
       "name": "Execution finished",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [
-        1200,
-        0
-      ],
+      "position": [1200, 0],
       "parameters": {
         "conditions": {
           "options": {
@@ -149,10 +131,7 @@
       "name": "Report actual outcome",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
-      "position": [
-        1440,
-        -100
-      ],
+      "position": [1440, -100],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",

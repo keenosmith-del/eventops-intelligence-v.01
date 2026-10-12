@@ -4,6 +4,7 @@ import psycopg
 from app.core.environment import load_local_environment, validate_production_environment
 
 
+# Create a PostgreSQL connection using environment configuration.
 def connect_db() -> psycopg.Connection:
     """Create a PostgreSQL connection using environment configuration."""
 
@@ -16,7 +17,11 @@ def connect_db() -> psycopg.Connection:
         return psycopg.connect(
             database_url,
             connect_timeout=5,
-            **({"sslmode": os.environ["POSTGRES_SSLMODE"]} if os.getenv("POSTGRES_SSLMODE") else {}),
+            **(
+                {"sslmode": os.environ["POSTGRES_SSLMODE"]}
+                if os.getenv("POSTGRES_SSLMODE")
+                else {}
+            ),
         )
 
     required = [

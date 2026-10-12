@@ -123,9 +123,11 @@ class SemanticRetriever:
     ) -> bool:
         kind = record.metadata.get("record_type")
 
+        # Validate that the record_type filter is applied correctly
         if record_type is not None and kind != record_type:
             return False
 
+        # Validate that the participant_status filter is applied correctly
         if participant_status is not None:
             if (
                 kind != "participant"
@@ -133,6 +135,7 @@ class SemanticRetriever:
             ):
                 return False
 
+        # Validate that the policy_category filter is applied correctly
         if policy_category is not None:
             if (
                 kind != "policy"

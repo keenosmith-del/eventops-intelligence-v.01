@@ -13,14 +13,17 @@ DEFAULT_CALENDAR = "https://www.officeholidays.com/ics/south-africa"
 DEFAULT_WEB = "https://date.nager.at/api/v3/PublicHolidays/2026/ZA"
 
 
+# Custom exception classes for tool-related errors.
 class ToolError(Exception):
     pass
 
 
+# Custom exception class for cases where a required connection is not established.
 class NotConnected(ToolError):
     pass
 
 
+# Validate a URL to ensure it is a public HTTPS URL without embedded credentials or private network addresses.
 def safe_reference(url: str) -> str:
     parts = urlsplit(url)
     return urlunsplit((parts.scheme, parts.netloc, parts.path, "", ""))
@@ -46,6 +49,7 @@ def validate_url(url: str):
         raise ToolError("Private and local network sources are not allowed.")
 
 
+# Fetch the text content from a given URL, enforcing size and time limits, and raising ToolError for any issues encountered during the request or response processing.
 def fetch_text(url: str, *, headers=None, transport=None) -> str:
     validate_url(url)
     started = time.monotonic()
@@ -82,6 +86,7 @@ def fetch_text(url: str, *, headers=None, transport=None) -> str:
         ) from exc
 
 
+# Get the current demonstration session ID from the request state. Raises an HTTPException if no valid session is found.
 def connection_info() -> list[dict]:
     info = []
     for key, label, env, default in [
@@ -114,6 +119,7 @@ def connection_info() -> list[dict]:
     return info
 
 
+# Read the calendar feed from the configured URL, enforcing a limit on the number of entries and raising NotConnected if the feed is not configured.
 def read_calendar(limit: int, transport=None) -> dict:
     url = os.getenv("CALENDAR_FEED_URL", DEFAULT_CALENDAR)
     if not url:
@@ -126,6 +132,7 @@ def read_calendar(limit: int, transport=None) -> dict:
     }
 
 
+# Read the web source from the configured URL, enforcing a limit on the number of entries and raising NotConnected if the source is not configured.
 def read_web(limit: int, transport=None) -> dict:
     url = os.getenv("WEB_SOURCE_URL", DEFAULT_WEB)
     if not url:
@@ -138,6 +145,7 @@ def read_web(limit: int, transport=None) -> dict:
     }
 
 
+# Read the email messages from the Mailtrap sandbox, enforcing a limit on the number of messages and raising NotConnected if the sandbox is not configured.
 def read_email(limit: int, transport=None) -> dict:
     token = os.getenv("MAILTRAP_API_TOKEN")
     account = os.getenv("MAILTRAP_ACCOUNT_ID")

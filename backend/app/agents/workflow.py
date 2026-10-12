@@ -8,6 +8,7 @@ from app.verification import pipeline
 from langgraph.graph import END, START, StateGraph
 
 
+# TypedDict for the state of the workflow. Each node in the workflow graph takes a State and returns a State.
 class State(TypedDict, total=False):
     run_id: str
     event_id: str
@@ -19,6 +20,7 @@ class State(TypedDict, total=False):
     execution_mode: str
 
 
+# The workflow graph is defined here. Each node is a function that takes a State and returns a State.
 def graph_for(*, adapters=None):
     adapters = adapters or {
         "calendar": tools.read_calendar,
@@ -27,6 +29,7 @@ def graph_for(*, adapters=None):
     }
     graph = StateGraph(State)
 
+    # The trigger node is the first node in the workflow. It sets the run status to running and records the event_id and limit.
     def trigger(state):
         store.set_run(state["run_id"], "running")
         store.step(
@@ -56,6 +59,7 @@ def graph_for(*, adapters=None):
                 payload = adapter(state["limit"])
                 sources[name] = payload
                 outcomes[name] = "completed"
+
                 # Store provenance and bounded input summaries; never credentials.
                 store.step(
                     state["run_id"],
@@ -175,9 +179,16 @@ def graph_for(*, adapters=None):
             state["run_id"],
             status,
             results=state["results"],
-            summary={**pipeline.summary(state["results"]), "tools": outcomes, "execution_mode": state["execution_mode"]},
+            summary={
+                **pipeline.summary(state["results"]),
+                "tools": outcomes,
+                "execution_mode": state["execution_mode"],
+            },
             error="No tool source was available." if status == "failed" else None,
-            persistence_outputs={"storage": "PostgreSQL", "record_count": len(state["results"])},
+            persistence_outputs={
+                "storage": "PostgreSQL",
+                "record_count": len(state["results"]),
+            },
         )
         return {}
 
@@ -201,11 +212,21 @@ def graph_for(*, adapters=None):
     return graph.compile()
 
 
+# Execute the workflow graph with the given run_id, event_id, and limit. The adapters and execution_mode can be specified for testing or real execution.
 def execute(run_id, event_id, limit, *, adapters=None, execution_mode=None):
     try:
         graph_for(adapters=adapters).invoke(
-            {"run_id": str(run_id), "event_id": event_id, "limit": limit,
-             "execution_mode": execution_mode or ("controlled_adapter_test" if adapters is not None else "real_https_read_only")},
+            {
+                "run_id": str(run_id),
+                "event_id": event_id,
+                "limit": limit,
+                "execution_mode": execution_mode
+                or (
+                    "controlled_adapter_test"
+                    if adapters is not None
+                    else "real_https_read_only"
+                ),
+            },
             config={"recursion_limit": 16},
         )
     except Exception:

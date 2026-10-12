@@ -41,12 +41,15 @@ class PostgresSemanticRetriever:
     def _vector_literal(vector: np.ndarray) -> str:
         array = np.asarray(vector, dtype=np.float32)
 
+        # Validate that the embedding has the correct shape and contains valid values
         if array.shape != (384,):
             raise ValueError("Query embedding must contain 384 dimensions")
 
+        # Validate that the embedding contains finite values and is not a zero vector
         if not np.isfinite(array).all():
             raise ValueError("Query embedding contains non-finite values")
 
+        # Validate that the embedding is not a zero vector
         if np.linalg.norm(array) == 0:
             raise ValueError("Query embedding cannot be a zero vector")
 
@@ -64,9 +67,11 @@ class PostgresSemanticRetriever:
         if not isinstance(query, str) or not query.strip():
             raise ValueError("Search query cannot be empty")
 
+        # Validate that top_k is a positive integer
         if type(top_k) is not int or top_k < 1:
             raise ValueError("top_k must be a positive integer")
 
+        # Validate that record_type, participant_status, and policy_category are valid if provided
         if record_type is not None and record_type not in {
             "event",
             "policy",
@@ -74,12 +79,14 @@ class PostgresSemanticRetriever:
         }:
             raise ValueError("Unknown record type")
 
+        # Validate that participant_status and policy_category are valid if provided
         if participant_status is not None and participant_status not in {
             "active",
             "inactive",
         }:
             raise ValueError("Unknown participant status")
 
+        # Validate that policy_category is valid if provided
         if policy_category is not None and policy_category not in POLICY_CATEGORIES:
             raise ValueError("Unknown policy category")
 
@@ -99,10 +106,12 @@ class PostgresSemanticRetriever:
         conditions = ["embedding IS NOT NULL"]
         parameters = [vector_literal]
 
+        # Validate that the record_type, participant_status, policy_category, and event_id filters are applied correctly
         if record_type is not None:
             conditions.append("record_type = %s")
             parameters.append(record_type)
 
+        # Validate that the participant_status filter is applied correctly
         if participant_status is not None:
             conditions.append(
                 "record_type = 'participant' "
@@ -110,12 +119,14 @@ class PostgresSemanticRetriever:
             )
             parameters.append(participant_status)
 
+        # Validate that the policy_category filter is applied correctly
         if policy_category is not None:
             conditions.append(
                 "record_type = 'policy' " "AND metadata->>'policy_category' = %s"
             )
             parameters.append(policy_category)
 
+        # Validate that the event_id filter is applied correctly
         if event_id is not None:
             conditions.append("""
                 (
@@ -164,12 +175,14 @@ class PostgresSemanticRetriever:
 
         parameters.extend([vector_literal, top_k])
 
+        # Validate that the SQL query is executed correctly and returns the expected results
         with self.connection.cursor(row_factory=dict_row) as cursor:
             cursor.execute(statement, parameters)
             rows = cursor.fetchall()
 
         results: list[SearchHit] = []
 
+        # Validate that the retrieved rows are processed correctly into SearchHit objects
         for row in rows:
             score = float(row.pop("score"))
 

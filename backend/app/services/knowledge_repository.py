@@ -7,6 +7,9 @@ from psycopg.types.json import Jsonb
 
 from app.models.domain import KnowledgeRecord
 
+# This SQL statement performs an upsert operation on the knowledge_records table. It inserts a new record if it doesn't
+# exist, or updates the existing record if it does. The update is conditional, only changing the embedding to NULL if the
+# content or source_sha256 has changed, ensuring that embeddings are recalculated when necessary.
 UPSERT_SQL = """
 INSERT INTO knowledge_records (
     document_id,

@@ -20,6 +20,7 @@ DEFAULT_GENERATION_EVALUATION_FILE = (
 )
 
 
+# Evaluation evidence model
 class EvaluationEvidence(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -28,6 +29,7 @@ class EvaluationEvidence(BaseModel):
     content: str = Field(min_length=1)
 
 
+# Generation evaluation case model
 class GenerationEvaluationCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -51,20 +53,24 @@ class GenerationEvaluationCase(BaseModel):
     def validate_expectations(self):
         evidence_ids = [item.record_id for item in self.evidence]
 
+        # Validate uniqueness and consistency of identifiers and facts
         if len(evidence_ids) != len(set(evidence_ids)):
             raise ValueError("Duplicate evidence identifiers")
 
         citations = self.expected_citation_ids
 
+        # Validate uniqueness and consistency of expected citations
         if len(citations) != len(set(citations)):
             raise ValueError("Duplicate expected citations")
 
+        # Validate that expected citations exist in the evidence
         if any(
             not isinstance(fact, str) or not fact.strip()
             for fact in self.required_facts
         ):
             raise ValueError("Required facts must contain text")
 
+        # Validate that expected citations exist in the evidence
         if self.expected_status == "generated":
             if not self.required_facts or not citations:
                 raise ValueError(
@@ -74,6 +80,7 @@ class GenerationEvaluationCase(BaseModel):
             if not set(citations).issubset(evidence_ids):
                 raise ValueError("Expected citations must exist " "in the evidence")
 
+        # Validate that non-generated cases do not expect answer facts or citations
         elif self.required_facts or citations:
             raise ValueError(
                 "Non-generated cases cannot expect " "answer facts or citations"
@@ -94,6 +101,7 @@ def load_generation_evaluation_cases(
 ) -> list[GenerationEvaluationCase]:
     data = json.loads(path.read_text(encoding="utf-8"))
 
+    # Validate that the loaded data is a non-empty list of cases
     if not isinstance(data, list) or not data:
         raise ValueError("Generation evaluation requires " "a non-empty case list")
 
@@ -101,6 +109,7 @@ def load_generation_evaluation_cases(
 
     identifiers = [case.case_id for case in cases]
 
+    # Validate uniqueness of case identifiers
     if len(identifiers) != len(set(identifiers)):
         raise ValueError("Duplicate generation evaluation case IDs")
 
@@ -131,6 +140,7 @@ def evaluate_generation_case(
 
     expected_ids = set(case.expected_citation_ids)
 
+    # Validate uniqueness and consistency of returned citations
     if len(actual_ids) != len(set(actual_ids)):
         failures.append("Duplicate returned citations")
 
@@ -141,6 +151,7 @@ def evaluate_generation_case(
 
     verified_source_content = []
 
+    # Validate that returned citations match the expected source references
     for citation in result.citations:
         source = sources.get(citation.record_id)
 

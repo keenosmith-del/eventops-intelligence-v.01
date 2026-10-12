@@ -16,11 +16,13 @@ from app.services import agent_repository as repository
 router = APIRouter(prefix="/api/agents", tags=["Verification agent"])
 
 
+# TypedDict for the state of the workflow. Each node in the workflow graph takes a State and returns a State.
 class RunRequest(DomainModel):
     event_id: str = Field(default="EVT-101", pattern=r"^EVT-\d{3}$")
     max_records: int = Field(default=20, ge=1, le=30)
 
 
+# TypedDict for the state of the workflow. Each node in the workflow graph takes a State and returns a State.
 @router.get("/connections")
 def connections():
     return connection_info()
@@ -77,11 +79,13 @@ def results(run_id: UUID, request: Request):
     }
 
 
+# Helper function to make CSV values safe for Excel and other spreadsheet software.
 def csv_safe(value):
     value = str("" if value is None else value)
     return "'" + value if re.match(r"^\s*[=+@\-]", value) else value
 
 
+# Export the results of a run as a CSV file. The CSV is generated in memory and returned as a streaming response.
 @router.get("/runs/{run_id}/export.csv")
 def export(run_id: UUID, request: Request, verified_only: bool = False):
     run = require_run(run_id, request)

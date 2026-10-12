@@ -24,6 +24,7 @@ def _read_csv(
     ) as file:
         reader = csv.DictReader(file)
 
+        # Validate that the CSV columns match the expected columns
         if reader.fieldnames != expected_columns:
             raise ValueError(
                 f"Unexpected CSV columns in {path.name}: " f"{reader.fieldnames}"
@@ -31,6 +32,7 @@ def _read_csv(
 
         rows = list(reader)
 
+    # Validate that the CSV file is not empty
     if not rows:
         raise ValueError(f"{path.name} contains no records")
 
@@ -48,6 +50,7 @@ def _ensure_unique(
 def _source_fingerprint(model: BaseModel) -> str:
     payload = model.model_dump(mode="json")
 
+    # Generate a canonical JSON representation of the model's data
     canonical_json = json.dumps(
         payload,
         sort_keys=True,
@@ -71,6 +74,7 @@ def _create_record(
 
     source_path = f"data/structured/{filename}"
 
+    # Validate that the record content is non-empty
     return KnowledgeRecord(
         document_id=filename,
         record_id=record_id,
@@ -145,6 +149,7 @@ def ingest_structured_documents(
         "directory email addresses",
     )
 
+    # Validate that policies reference known events
     for policy in policies:
         if policy.event_id != "ALL" and policy.event_id not in event_ids:
             raise ValueError(
@@ -152,6 +157,7 @@ def ingest_structured_documents(
                 f"unknown event {policy.event_id}"
             )
 
+    # Validate that participants reference known events
     for person in directory.participants:
         _ensure_unique(
             person.registered_events,
@@ -160,6 +166,7 @@ def ingest_structured_documents(
 
         unknown_events = set(person.registered_events) - event_ids
 
+        # Validate that participants do not reference unknown events
         if unknown_events:
             raise ValueError(
                 f"Participant {person.participant_id} "

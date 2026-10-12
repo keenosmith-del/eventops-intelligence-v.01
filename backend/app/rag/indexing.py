@@ -11,12 +11,14 @@ def main() -> None:
 
     print(f"Validated {len(records)} knowledge records.")
 
+    # Upsert validated records into the knowledge repository
     with connect_db() as connection:
         repository = KnowledgeRepository(connection)
         changed = repository.upsert_records(records)
 
     print(f"Inserted or updated records: {changed}")
 
+    # Generate embeddings for records that do not have them
     with connect_db() as connection:
         repository = KnowledgeRepository(connection)
         pending = repository.list_unembedded_records()
@@ -30,6 +32,7 @@ def main() -> None:
 
         vectors = model.embed_documents([record.content for record in pending])
 
+        # Store the generated embeddings in the knowledge repository
         with connect_db() as connection:
             repository = KnowledgeRepository(connection)
 
@@ -46,6 +49,7 @@ def main() -> None:
 
         print(f"Stored {len(pending)} embeddings.")
 
+    # Summarize the current state of the knowledge repository
     with connect_db() as connection:
         repository = KnowledgeRepository(connection)
 

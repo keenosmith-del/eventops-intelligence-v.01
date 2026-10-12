@@ -26,14 +26,20 @@ from app.core.demo import (
     router as demo_router,
 )
 
+
 @asynccontextmanager
 async def lifespan(app):
     if os.getenv("APP_ENV") == "production":
         from app.api.rag import get_embedding_model
+
         try:
-            await run_in_threadpool(lambda: get_embedding_model().embed_query("EventOps readiness"))
+            await run_in_threadpool(
+                lambda: get_embedding_model().embed_query("EventOps readiness")
+            )
         except Exception:
-            raise RuntimeError("Embedding model initialization failed; service is not ready.") from None
+            raise RuntimeError(
+                "Embedding model initialization failed; service is not ready."
+            ) from None
     yield
 
 
@@ -71,7 +77,11 @@ async def public_demo_guard(request: Request, call_next):
         service_request = request.url.path.startswith("/api/integrations/n8n/")
         if service_request:
             await run_in_threadpool(require_service, request)
-        if not service_request and demo_enabled() and request.url.path != "/api/demo/session":
+        if (
+            not service_request
+            and demo_enabled()
+            and request.url.path != "/api/demo/session"
+        ):
             owner = await run_in_threadpool(
                 identify_session, request.headers.get("x-demo-session")
             )
@@ -112,7 +122,13 @@ async def public_demo_guard(request: Request, call_next):
         # Safe diagnostics: never log exception text, credentials, headers or bodies.
         logging.getLogger("eventops.availability").warning(
             "API unavailable: method=%s operation=%s category=%s",
-            request.method, request.url.path.split("/")[2] if len(request.url.path.split("/")) > 2 else "api", type(exc).__name__,
+            request.method,
+            (
+                request.url.path.split("/")[2]
+                if len(request.url.path.split("/")) > 2
+                else "api"
+            ),
+            type(exc).__name__,
         )
         return JSONResponse(
             {
@@ -154,12 +170,17 @@ async def health_check():
 @app.get("/ready")
 def readiness_check():
     from app.core.database import connect_db
+
     try:
         with connect_db() as connection, connection.cursor() as cursor:
-            cursor.execute("SELECT 1 FROM schema_migrations WHERE name='004_n8n_triggers.sql'")
+            cursor.execute(
+                "SELECT 1 FROM schema_migrations WHERE name='004_n8n_triggers.sql'"
+            )
             if not cursor.fetchone():
                 raise ValueError
-            cursor.execute("SELECT COUNT(*), COUNT(embedding), COUNT(DISTINCT document_id) FROM knowledge_records")
+            cursor.execute(
+                "SELECT COUNT(*), COUNT(embedding), COUNT(DISTINCT document_id) FROM knowledge_records"
+            )
             records, embeddings, documents = cursor.fetchone()
             if records < 19 or embeddings != records or documents < 3:
                 raise ValueError

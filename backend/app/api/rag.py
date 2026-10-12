@@ -18,6 +18,7 @@ router = APIRouter(
 )
 
 
+# TypedDict for the state of the workflow. Each node in the workflow graph takes a State and returns a State.
 class RetrievalRequest(DomainModel):
     question: str = Field(min_length=1, max_length=500)
     top_k: int = Field(default=5, ge=1, le=20)
@@ -52,17 +53,20 @@ class RetrievalResponse(DomainModel):
 _embedding_initialization_lock = Lock()
 
 
+# Get the cached embedding model instance.
 @lru_cache(maxsize=1)
 def _cached_embedding_model() -> LocalEmbeddingModel:
     return LocalEmbeddingModel()
 
 
+# Get the embedding model instance, ensuring that it is initialized only once even under concurrent requests.
 def get_embedding_model() -> LocalEmbeddingModel:
     # lru_cache alone can initialize twice when concurrent first requests arrive.
     with _embedding_initialization_lock:
         return _cached_embedding_model()
 
 
+# Get a PostgresSemanticRetriever instance for the current request, using the cached embedding model.
 def get_rag_retriever() -> Iterator[PostgresSemanticRetriever]:
     with connect_db() as connection:
         yield PostgresSemanticRetriever(
@@ -71,6 +75,7 @@ def get_rag_retriever() -> Iterator[PostgresSemanticRetriever]:
         )
 
 
+# Retrieve evidence for a given question using the RAG retriever. Returns a structured response containing the question, query plan, and retrieved evidence.
 @router.post(
     "/retrieve",
     response_model=RetrievalResponse,

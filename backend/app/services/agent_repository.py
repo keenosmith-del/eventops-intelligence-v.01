@@ -27,7 +27,9 @@ def insert_run(cursor, event_id, max_records, owner=None):
         "SELECT COUNT(*) AS count FROM agent_runs WHERE status IN ('pending','running') AND created_at > NOW() - INTERVAL '10 minutes'"
     )
     if cursor.fetchone()["count"] >= 2:
-        raise RuntimeError("Two verification runs are already active. Wait for a run to finish.")
+        raise RuntimeError(
+            "Two verification runs are already active. Wait for a run to finish."
+        )
     cursor.execute(
         "INSERT INTO agent_runs (event_id,max_records) VALUES (%s,%s) RETURNING *",
         (event_id, max_records),
@@ -111,7 +113,9 @@ def step(run_id, node, status, *, inputs=None, outputs=None, error=None):
         )
 
 
-def set_run(run_id, status, *, results=None, summary=None, error=None, persistence_outputs=None):
+def set_run(
+    run_id, status, *, results=None, summary=None, error=None, persistence_outputs=None
+):
     with connect_db() as connection, connection.cursor() as cursor:
         cursor.execute(
             """UPDATE agent_runs SET status=%s, results=COALESCE(%s,results), summary=COALESCE(%s,summary), error=%s,

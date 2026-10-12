@@ -12,6 +12,7 @@ EVENT_PATTERN = re.compile(
     flags=re.IGNORECASE,
 )
 
+
 PARTICIPANT_PATTERN = re.compile(
     r"\b(participants?|attendees?|registrants?|" r"directory|active|inactive)\b"
 )
@@ -65,6 +66,7 @@ def interpret_query(question: str) -> QueryPlan:
 
     record_type = None
 
+    # Determine the record type based on the presence of specific terms in the query
     if explicitly_asks_policy:
         record_type = "policy"
     elif has_participant_terms:
@@ -76,6 +78,7 @@ def interpret_query(question: str) -> QueryPlan:
 
     participant_status = None
 
+    # Determine the participant status based on the presence of specific terms in the query
     if record_type == "participant":
         mentions_inactive = bool(re.search(r"\binactive\b", text))
         mentions_active = bool(re.search(r"\bactive\b", text))
@@ -90,6 +93,7 @@ def interpret_query(question: str) -> QueryPlan:
             )
         )
 
+        # If the query does not explicitly ask about participant status, infer it from the presence of terms in the query
         if not asks_about_status:
             if mentions_inactive and not mentions_active:
                 participant_status = "inactive"

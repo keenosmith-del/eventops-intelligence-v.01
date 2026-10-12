@@ -5,6 +5,7 @@ from pathlib import Path
 from app.core.database import connect_db
 
 
+# Apply all numbered migrations in the infrastructure/postgres/migrations directory that have not yet been applied, in order.
 def migrate():
     root = Path(__file__).resolve().parents[3] / "infrastructure/postgres/migrations"
     with connect_db() as connection, connection.cursor() as cursor:

@@ -7,6 +7,7 @@ from pydantic import Field, model_validator
 from app.models.domain import DomainModel
 
 
+# Conversation and ConversationMessage models for managing conversation data.
 class Conversation(DomainModel):
     id: UUID
     title: str | None = Field(
@@ -18,6 +19,7 @@ class Conversation(DomainModel):
     updated_at: datetime
 
 
+# ConversationMessage model for individual messages within a conversation.
 class ConversationMessage(DomainModel):
     id: int = Field(gt=0)
     conversation_id: UUID

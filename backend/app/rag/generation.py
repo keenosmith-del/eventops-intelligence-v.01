@@ -6,8 +6,10 @@ import httpx
 from app.core.environment import load_local_environment
 from pydantic import BaseModel, ConfigDict, Field
 
+# Gemini model
 GEMINI_MODEL = "gemini-3.5-flash-lite"
 
+# Gemini API endpoint
 GEMINI_ENDPOINT = (
     "https://generativelanguage.googleapis.com"
     f"/v1beta/models/{GEMINI_MODEL}:generateContent"
@@ -128,6 +130,7 @@ def generate_grounded_answer(
     The transport argument supports offline tests.
     """
 
+    # Validate question length and type
     if (
         not isinstance(question, str)
         or not question.strip()
@@ -217,9 +220,11 @@ def generate_grounded_answer(
 
         model_answer = ModelAnswer.model_validate(json.loads(text))
 
+        # Validate the generated answer
         if not model_answer.answer.strip() and not model_answer.citation_ids:
             return insufficient_evidence_answer()
 
+        # Validate that the generated answer is non-empty and citations are valid
         if not model_answer.answer.strip() or not model_answer.citation_ids:
             return unavailable_answer()
 
@@ -227,6 +232,7 @@ def generate_grounded_answer(
 
         citation_ids = model_answer.citation_ids
 
+        # Validate that the generated citations are unique and exist in the evidence
         if len(citation_ids) != len(set(citation_ids)) or any(
             identifier not in allowed for identifier in citation_ids
         ):

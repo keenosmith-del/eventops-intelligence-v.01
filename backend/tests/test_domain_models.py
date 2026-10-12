@@ -1,4 +1,3 @@
-
 from datetime import datetime, timezone
 
 import pytest
@@ -15,7 +14,6 @@ from app.models.domain import (
     VerificationResult,
     VerificationStatus,
 )
-
 
 EVENT_DATA = {
     "event_id": "EVT-101",
@@ -36,18 +34,22 @@ def test_valid_event():
 
 def test_event_rejects_invalid_schedule():
     with pytest.raises(ValidationError):
-        Event(**{
-            **EVENT_DATA,
-            "ends_at": EVENT_DATA["starts_at"],
-        })
+        Event(
+            **{
+                **EVENT_DATA,
+                "ends_at": EVENT_DATA["starts_at"],
+            }
+        )
 
 
 def test_event_rejects_missing_timezone():
     with pytest.raises(ValidationError):
-        Event(**{
-            **EVENT_DATA,
-            "starts_at": datetime(2026, 10, 21, 9, 0),
-        })
+        Event(
+            **{
+                **EVENT_DATA,
+                "starts_at": datetime(2026, 10, 21, 9, 0),
+            }
+        )
 
 
 def test_event_rejects_invalid_capacity():

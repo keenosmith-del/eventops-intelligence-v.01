@@ -27,6 +27,7 @@ from app.rag.generation import (
     generate_grounded_answer,
 )
 
+# Router for handling conversation-related API endpoints.
 router = APIRouter(
     prefix="/api/conversations",
     tags=["RAG Conversations"],
@@ -50,6 +51,7 @@ class ConversationDetailResponse(DomainModel):
     messages: list[ConversationMessage]
 
 
+# TypedDict for the state of the workflow. Each node in the workflow graph takes a State and returns a State.
 class RetrievalExchangeResponse(DomainModel):
     conversation_id: UUID
     messages: list[ConversationMessage]
@@ -62,17 +64,20 @@ class RetrievalExchangeResponse(DomainModel):
     ] = "not_requested"
 
 
+# Dependency to provide a ConversationRepository instance for the current request.
 def get_conversation_repository(request: Request) -> Iterator[ConversationRepository]:
     with connect_db() as connection:
         yield ConversationRepository(connection, session_id(request))
 
 
+# Type alias for a callable that generates a grounded answer based on a query and evidence.
 AnswerGenerator = Callable[
     [str, list[dict]],
     GroundedAnswer,
 ]
 
 
+# Dependency to provide an AnswerGenerator instance for the current request.
 def get_answer_generator() -> AnswerGenerator:
     return generate_grounded_answer
 
@@ -82,6 +87,8 @@ def get_answer_generator() -> AnswerGenerator:
     response_model=Conversation,
     status_code=status.HTTP_201_CREATED,
 )
+
+# Create a new conversation with an optional title. Returns the created conversation object.
 def create_conversation(
     payload: CreateConversationRequest,
     repository: ConversationRepository = Depends(get_conversation_repository),
@@ -110,6 +117,8 @@ def list_conversations(
     "/{conversation_id}",
     response_model=ConversationDetailResponse,
 )
+
+# Get the details of a specific conversation, including its messages. Raises a 404 error if the conversation is not found.
 def get_conversation(
     conversation_id: UUID,
     repository: ConversationRepository = Depends(get_conversation_repository),
@@ -209,7 +218,9 @@ def submit_question(
         "inherited_event_id": resolved.inherited_event_id,
     }
 
-    query_plan["generation_status"] = generation_result.status if generation_result else "not_requested"
+    query_plan["generation_status"] = (
+        generation_result.status if generation_result else "not_requested"
+    )
 
     try:
         messages = repository.append_retrieval_exchange(

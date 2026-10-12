@@ -12,6 +12,7 @@ DEFAULT_EVALUATION_FILE = (
 )
 
 
+# Evaluation case model
 class EvaluationCase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -21,6 +22,7 @@ class EvaluationCase(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
 
 
+# Evaluate a single evaluation case
 @dataclass(frozen=True)
 class EvaluationOutcome:
     case_id: str
@@ -31,6 +33,7 @@ class EvaluationOutcome:
     reciprocal_rank: float | None
 
 
+# Load evaluation cases from a JSON file and validate their structure.
 def load_evaluation_cases(
     path: Path = DEFAULT_EVALUATION_FILE,
 ) -> list[EvaluationCase]:
@@ -53,6 +56,7 @@ def load_evaluation_cases(
     return cases
 
 
+# Evaluate a single evaluation case
 def evaluate_case(
     case: EvaluationCase,
     retriever: SearchProvider,
@@ -124,6 +128,7 @@ def main() -> None:
     print("\nRAG RETRIEVAL EVALUATION — IN-MEMORY")
     print("=" * 60)
 
+    # Print evaluation results for each case
     for outcome in outcomes:
         status = "PASS" if outcome.passed else "FAIL"
 
