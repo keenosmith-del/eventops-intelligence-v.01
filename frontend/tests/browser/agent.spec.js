@@ -16,6 +16,7 @@ const nodes = [
   "persistence",
   "export",
 ];
+
 const fixtureRun = {
   id,
   event_id: "EVT-101",
@@ -125,7 +126,9 @@ test("reviewer entry is explicit and sidebar collapse works", async ({
   await expect(
     page.getByRole("heading", { name: "What would you like to know?" }),
   ).toBeVisible();
+
   await page.getByRole("button", { name: "Collapse sidebar" }).click();
+
   await expect(
     page.getByRole("button", { name: "Expand sidebar" }),
   ).toHaveAttribute("aria-expanded", "false");
@@ -135,13 +138,19 @@ test("persisted graph, discrepancy evidence and CSV export", async ({
   page,
 }) => {
   await seed(page);
+
   await page.goto("/agents");
+
   await page.getByRole("button", { name: "Run verification" }).click();
+
   await expect(page).toHaveURL(new RegExp(id));
+
   await expect(
     page.getByRole("heading", { name: "Execution · partial" }),
   ).toBeVisible();
+
   await expect(page.locator(".react-flow__node")).toHaveCount(11);
+
   await page
     .locator('.react-flow__node[data-id="email"]')
     .scrollIntoViewIfNeeded();
@@ -151,6 +160,7 @@ test("persisted graph, discrepancy evidence and CSV export", async ({
   ).toBeInViewport();
 
   await page.locator('.react-flow__node[data-id="email"]').click();
+
   for (const node of nodes)
     await expect(
       page.locator(`.react-flow__node[data-id="${node}"]`),
@@ -178,6 +188,7 @@ test("persisted graph, discrepancy evidence and CSV export", async ({
   await page
     .getByRole("link", { name: "Execution history", exact: true })
     .click();
+
   await page.getByRole("button", { name: /EVT-101 · partial/ }).click();
 
   await expect(
@@ -225,6 +236,7 @@ test("knowledge sources show live counts without an upload action", async ({
   ).toBeVisible();
 
   await page.getByText("EVT-101", { exact: true }).click();
+
   await expect(
     page.getByText("data/structured/events.csv#event_id=EVT-101", {
       exact: true,

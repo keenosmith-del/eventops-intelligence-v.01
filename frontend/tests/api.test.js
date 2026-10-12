@@ -15,20 +15,26 @@ describe("API compatibility and failures", () => {
         messages: [],
       }),
     });
+
     vi.stubGlobal("fetch", fetch);
+
     await api.ask("abc", {
       question: "Where is EVT-101?",
       top_k: 5,
       generate_answer: false,
     });
+
     expect(fetch.mock.calls[0][0]).toBe("/api/conversations/abc/messages");
+
     expect(JSON.parse(fetch.mock.calls[0][1].body)).toEqual({
       question: "Where is EVT-101?",
       top_k: 5,
       generate_answer: false,
     });
+
     expect(fetch.mock.calls[0][1].method).toBe("POST");
   });
+
   it("creates a conversation with an optional title", async () => {
     const fetch = vi
       .fn()
@@ -37,6 +43,7 @@ describe("API compatibility and failures", () => {
     await api.create("");
     expect(fetch.mock.calls[0][1].body).toBe("{}");
   });
+
   it("renders Pydantic validation detail without losing fields", () => {
     expect(
       validationMessage([
@@ -47,6 +54,7 @@ describe("API compatibility and failures", () => {
       ]),
     ).toBe("top_k: Input should be less than or equal to 20");
   });
+
   it("reports a missing conversation", async () => {
     vi.stubGlobal(
       "fetch",
@@ -60,6 +68,7 @@ describe("API compatibility and failures", () => {
       "Conversation not found",
     );
   });
+
   it("does not expose internal server error text", async () => {
     vi.stubGlobal(
       "fetch",
@@ -71,24 +80,31 @@ describe("API compatibility and failures", () => {
     );
     await expect(api.list()).rejects.toThrow("Check the API and PostgreSQL");
   });
+
   it("retries a 503 read once and returns the actual recovery response", async () => {
-    const fetch = vi.fn().mockResolvedValueOnce({ ok: false, status: 503 }).mockResolvedValueOnce({ ok: true, json: async () => [{ id: "saved" }] });
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 503 })
+      .mockResolvedValueOnce({ ok: true, json: async () => [{ id: "saved" }] });
     vi.stubGlobal("fetch", fetch);
     expect(await api.runs()).toEqual([{ id: "saved" }]);
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+
   it("does not retry session or agent writes after a 503", async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
     vi.stubGlobal("fetch", fetch);
     await expect(api.startDemo()).rejects.toThrow("backend");
     expect(fetch).toHaveBeenCalledTimes(1);
   });
+
   it("bounds repeated unavailable reads to two requests", async () => {
     const fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
     vi.stubGlobal("fetch", fetch);
     await expect(api.runs()).rejects.toThrow("backend");
     expect(fetch).toHaveBeenCalledTimes(2);
   });
+
   it("reports a network outage", async () => {
     vi.stubGlobal(
       "fetch",
@@ -96,6 +112,7 @@ describe("API compatibility and failures", () => {
     );
     await expect(api.health()).rejects.toThrow("Cannot reach the backend");
   });
+
   it("times out without automatically retrying a write", async () => {
     vi.useFakeTimers();
     const fetch = vi.fn(
@@ -106,6 +123,7 @@ describe("API compatibility and failures", () => {
           ),
         ),
     );
+
     vi.stubGlobal("fetch", fetch);
     const pending = expect(
       request("/api/conversations", { body: {}, timeout: 10 }),
@@ -114,6 +132,7 @@ describe("API compatibility and failures", () => {
     await pending;
     expect(fetch).toHaveBeenCalledTimes(1);
   });
+
   it("cancels a stale read through the caller signal", async () => {
     const controller = new AbortController();
     vi.stubGlobal(
@@ -127,6 +146,7 @@ describe("API compatibility and failures", () => {
           ),
       ),
     );
+
     const pending = expect(
       api.detail("abc", controller.signal),
     ).rejects.toMatchObject({ name: "AbortError" });

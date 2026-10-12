@@ -1,7 +1,13 @@
 import { defineConfig } from "@playwright/test";
+
 const preview = process.env.TEST_PREVIEW === "true";
+
 const previewPort = Number(process.env.TEST_PREVIEW_PORT || 4173);
-const localURL = preview ? `http://127.0.0.1:${previewPort}` : "http://127.0.0.1:5173";
+
+const localURL = preview
+  ? `http://127.0.0.1:${previewPort}`
+  : "http://127.0.0.1:5173";
+
 export default defineConfig({
   testDir: "./tests/browser",
   timeout: 120000,
@@ -17,7 +23,9 @@ export default defineConfig({
   webServer: process.env.TEST_BASE_URL
     ? undefined
     : {
-        command: preview ? `npm run preview -- --port ${previewPort}` : "npm run dev",
+        command: preview
+          ? `npm run preview -- --port ${previewPort}`
+          : "npm run dev",
         url: localURL,
         reuseExistingServer: !preview,
       },
