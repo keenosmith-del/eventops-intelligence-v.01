@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
 import { workspaceError } from "../workspace-errors.js";
+
 export default function KnowledgeSources() {
   const [data, setData] = useState(null),
     [error, setError] = useState("");
+
   useEffect(() => {
     const c = new AbortController();
     api
@@ -15,26 +17,36 @@ export default function KnowledgeSources() {
       });
     return () => c.abort();
   }, []);
+
   useEffect(() => {
     if (data && window.location.hash)
       document
         .getElementById(decodeURIComponent(window.location.hash.slice(1)))
         ?.scrollIntoView({ block: "start" });
   }, [data]);
+
   return (
     <div className="sources-page">
       <div className="page-intro">
         <h1>Knowledge sources</h1>
-        <p>Events, policies and participant records used to ground answers and verify registrations.
-          External Calendar, Email and Web observations are compared against these reference sources.</p>
-        <Link className="text-button" to="/workspace">Ask about this knowledge</Link>
+        <p>
+          Events, policies and participant records used to ground answers and
+          verify registrations. External Calendar, Email and Web observations
+          are compared against these reference sources.
+        </p>
+        <Link className="text-button" to="/workspace">
+          Ask about this knowledge
+        </Link>
       </div>
+
       {error && (
         <p role="alert" className="notice error">
           {error}
         </p>
       )}
+
       {!data && !error && <p role="status">Loading indexed sources…</p>}
+
       {data && (
         <>
           <p className="pill">
@@ -67,6 +79,7 @@ export default function KnowledgeSources() {
                     new Set(source.records.map((record) => record.record_type)),
                   ).join(", ")}
                 </p>
+
                 {source.records.map((record) => (
                   <details className="source-row" key={record.record_id}>
                     <summary>

@@ -13,6 +13,7 @@ const statusText = {
 
 export function groupExchanges(messages) {
   const groups = [];
+
   for (const message of messages) {
     if (message.kind === "question") groups.push({ question: message });
     else if (groups.length && message.kind === "retrieval")
@@ -30,7 +31,9 @@ export default function Exchange({
   onInspect,
 }) {
   const { question, retrieval, answer } = exchange;
+
   const [copyState, setCopyState] = useState("");
+
   async function copyAnswer() {
     try {
       await navigator.clipboard.writeText(answer.content);
@@ -40,7 +43,9 @@ export default function Exchange({
     }
   }
   const context = retrieval?.query_plan?.context_resolution;
+
   status = retrieval?.query_plan?.generation_status || status;
+
   return (
     <article className="exchange" id={`exchange-${question.id}`}>
       <div className="question">
@@ -104,8 +109,18 @@ export default function Exchange({
             </div>
             <p>{answer.content}</p>
             <div className="answer-actions">
-              <button type="button" className="text-button" onClick={copyAnswer} aria-label="Copy answer">
-                {copyState === "Answer copied" ? <Check size={14} /> : <Copy size={14} />} Copy
+              <button
+                type="button"
+                className="text-button"
+                onClick={copyAnswer}
+                aria-label="Copy answer"
+              >
+                {copyState === "Answer copied" ? (
+                  <Check size={14} />
+                ) : (
+                  <Copy size={14} />
+                )}{" "}
+                Copy
               </button>
               <span role="status">{copyState}</span>
             </div>

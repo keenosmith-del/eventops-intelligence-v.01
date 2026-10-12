@@ -14,6 +14,7 @@
     #dce1df 75%,
     #c9d1d3 100%
   );
+
   font-family:
     "Helvetica Neue",
     -apple-system,
@@ -28,6 +29,7 @@
 .intro-screen.intro-leaving {
   opacity: 0;
 }
+
 .intro-hero {
   flex: 1;
   display: flex;
@@ -85,23 +87,28 @@
 .intro-screen .intro-action:hover:not(:disabled) {
   background: #485355;
 }
+
 .intro-screen .intro-action:active:not(:disabled) {
   transform: none;
 }
+
 .intro-screen .intro-start {
   min-width: 104px;
   min-height: 36px;
   padding: 7px 17px;
   gap: 13px;
 }
+
 .intro-action svg,
 .intro-back svg {
   transition: transform 220ms ease;
   flex-shrink: 0;
 }
+
 .intro-action:hover:not(:disabled) svg {
   transform: translateX(4px);
 }
+
 .intro-screen .intro-action:focus-visible,
 .intro-back:focus-visible {
   outline: 2px solid #4d5b60;
@@ -111,18 +118,23 @@
 .intro-arrive {
   animation: intro-reveal 800ms cubic-bezier(0.2, 0.65, 0.3, 1) both;
 }
+
 .intro-head {
   animation-name: intro-fade;
 }
+
 .intro-title {
   animation-delay: 120ms;
 }
+
 .intro-description {
   animation-delay: 250ms;
 }
+
 .intro-hero .intro-action {
   animation-delay: 370ms;
 }
+
 @keyframes intro-reveal {
   from {
     opacity: 0;
@@ -133,6 +145,7 @@
     transform: translateY(0);
   }
 }
+
 @keyframes intro-fade {
   from {
     opacity: 0;
@@ -141,6 +154,7 @@
     opacity: 1;
   }
 }
+
 .intro-back {
   align-self: flex-start;
   display: inline-flex;
@@ -160,9 +174,11 @@
   color: var(--intro-ink);
   background: #fffdf7;
 }
+
 .intro-back:hover svg {
   transform: translateX(-4px);
 }
+
 .intro-entry-layout {
   flex: 1;
   display: grid;
@@ -178,6 +194,7 @@
   display: flex;
   justify-content: center;
 }
+
 .intro-character img {
   display: block;
   width: auto;

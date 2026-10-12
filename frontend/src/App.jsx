@@ -59,6 +59,7 @@ export default function App() {
     const media = window.matchMedia("(max-width: 1024px)");
     const update = () => {
       setMobile(media.matches);
+
       setDrawer(false);
     };
 
@@ -75,7 +76,9 @@ export default function App() {
   useEffect(() => {
     const expired = () => {
       sessionStorage.removeItem("eventops-demo-token");
+
       setToken(null);
+
       navigate("/signin");
     };
 
@@ -100,6 +103,7 @@ export default function App() {
   useEffect(() => {
     check();
   }, []);
+
   if (location.pathname === "/") return <Landing />;
 
   if (!token || location.pathname === "/signin")

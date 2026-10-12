@@ -7,9 +7,13 @@ import "../introduction.css";
 
 function useIntroTransition() {
   const [leaving, setLeaving] = useState(false);
+
   const timer = useRef(null);
+
   const navigate = useNavigate();
+
   useEffect(() => () => clearTimeout(timer.current), []);
+
   function transition(event, to) {
     if (
       event.button !== 0 ||
@@ -26,6 +30,7 @@ function useIntroTransition() {
       return;
     }
     setLeaving(true);
+
     timer.current = setTimeout(() => navigate(to), 180);
   }
   return { leaving, transition };
@@ -33,6 +38,7 @@ function useIntroTransition() {
 
 export function Landing() {
   const { leaving, transition } = useIntroTransition();
+
   return (
     <main
       className={`intro-screen intro-landing ${leaving ? "intro-leaving" : ""}`}
@@ -70,14 +76,20 @@ export function Landing() {
 
 export function SignIn({ onEnter }) {
   const [busy, setBusy] = useState(false);
+
   const [error, setError] = useState("");
+
   const { leaving, transition } = useIntroTransition();
+
   async function enter() {
     setBusy(true);
+
     setError("");
     try {
       const result = await api.startDemo();
+
       sessionStorage.setItem("eventops-demo-token", result.session_token);
+
       onEnter(result.session_token);
     } catch (err) {
       setError(err.message);

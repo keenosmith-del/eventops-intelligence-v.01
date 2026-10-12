@@ -9,6 +9,7 @@ import {
   SlidersHorizontal,
   X,
 } from "lucide-react";
+
 import { api, UUID_PATTERN } from "../api.js";
 import Evidence from "./Evidence.jsx";
 import Exchange, { groupExchanges } from "./Exchange.jsx";
@@ -17,9 +18,12 @@ import { workspaceError as displayError } from "../workspace-errors.js";
 function SourcesMenu({ close }) {
   const [sources, setSources] = useState(null),
     [error, setError] = useState("");
+
   const menu = useRef(null);
+
   useEffect(() => {
     const controller = new AbortController();
+
     api
       .sources(controller.signal)
       .then(setSources)
@@ -37,12 +41,14 @@ function SourcesMenu({ close }) {
     }
     document.addEventListener("pointerdown", dismiss);
     document.addEventListener("keydown", dismiss);
+
     return () => {
       controller.abort();
       document.removeEventListener("pointerdown", dismiss);
       document.removeEventListener("keydown", dismiss);
     };
   }, []);
+
   return (
     <section
       className="source-menu"
@@ -71,56 +77,76 @@ function SourcesMenu({ close }) {
 export default function KnowledgeAssistant({ id }) {
   const navigate = useNavigate(),
     location = useLocation();
+
   const [conversation, setConversation] = useState(null),
     [messages, setMessages] = useState([]);
+
   const [question, setQuestion] = useState(location.state?.draft || ""),
     [topK, setTopK] = useState(location.state?.options?.topK || 5),
     [generate, setGenerate] = useState(
       location.state?.options?.generate || false,
     );
+
   const [statuses, setStatuses] = useState(location.state?.generation || {});
+
   const [loading, setLoading] = useState(Boolean(id)),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(location.state?.error || "");
+
   const [revision, setRevision] = useState(0),
     [tab, setTab] = useState("evidence"),
     [selected, setSelected] = useState(null),
     [evidenceOpen, setEvidenceOpen] = useState(false),
     [sourcesOpen, setSourcesOpen] = useState(false);
+
   const lock = useRef(false),
     mounted = useRef(true),
     textarea = useRef(null),
     end = useRef(null),
     pendingQuestion = useRef(null),
     scrollTarget = useRef(null);
+
   const [pending, setPending] = useState("");
+
   const [awayFromBottom, setAwayFromBottom] = useState(false);
+
   const exchanges = groupExchanges(messages);
+
   const active =
     exchanges.find((exchange) => exchange.question.id === selected) ||
     exchanges.at(-1);
+
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
+
   useEffect(() => {
     if (!id) return;
+
     const controller = new AbortController();
+
     if (!UUID_PATTERN.test(id)) {
       setError("Enter a valid conversation UUID.");
       setLoading(false);
       return;
     }
     setLoading(true);
+
     api
       .detail(id, controller.signal)
       .then((result) => {
         if (controller.signal.aborted) return;
+
         setConversation(result.conversation);
+
         setMessages(result.messages);
-        scrollTarget.current = result.messages.filter(message => message.kind === "question").at(-1)?.id;
+
+        scrollTarget.current = result.messages
+          .filter((message) => message.kind === "question")
+          .at(-1)?.id;
         setEvidenceOpen(
           window.matchMedia("(min-width: 1121px)").matches &&
             result.messages.some((message) => message.kind === "retrieval"),
@@ -134,6 +160,7 @@ export default function KnowledgeAssistant({ id }) {
       });
     return () => controller.abort();
   }, [id, revision]);
+
   useEffect(() => {
     const media = window.matchMedia("(max-width: 1120px)");
     const update = () => {
@@ -142,39 +169,54 @@ export default function KnowledgeAssistant({ id }) {
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
+
   useEffect(() => {
     if (textarea.current) {
       textarea.current.style.height = "auto";
       textarea.current.style.height = `${Math.min(textarea.current.scrollHeight, 140)}px`;
     }
   }, [question]);
+
   useEffect(() => {
     const update = () => {
       const rect = end.current?.getBoundingClientRect();
       setAwayFromBottom(Boolean(rect && rect.top > window.innerHeight - 180));
     };
+
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
+
     const observer = new ResizeObserver(update);
+
     if (end.current?.parentElement) observer.observe(end.current.parentElement);
     update();
+
     return () => {
       window.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
       observer.disconnect();
     };
   }, [messages, pending]);
+
   useEffect(() => {
-    const target = pending ? pendingQuestion.current
-      : scrollTarget.current ? document.getElementById(`exchange-${scrollTarget.current}`) : null;
+    const target = pending
+      ? pendingQuestion.current
+      : scrollTarget.current
+        ? document.getElementById(`exchange-${scrollTarget.current}`)
+        : null;
     if (target) {
       target.scrollIntoView({ block: "start", behavior: "auto" });
       scrollTarget.current = null;
     }
   }, [messages, pending]);
+
   function jumpToBottom() {
-    end.current?.scrollIntoView({ block: "end", behavior:
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    end.current?.scrollIntoView({
+      block: "end",
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
   }
 
   async function ask(event) {
@@ -188,6 +230,7 @@ export default function KnowledgeAssistant({ id }) {
       (id && !conversation)
     )
       return;
+
     lock.current = true;
     setBusy(true);
     setPending(text);
@@ -203,9 +246,11 @@ export default function KnowledgeAssistant({ id }) {
         top_k: Number(topK),
         generate_answer: generate,
       });
+
       const retrieval = result.messages.find(
         (message) => message.kind === "retrieval",
       );
+
       const generation = retrieval
         ? { [retrieval.id]: result.generation_status }
         : {};
@@ -216,7 +261,9 @@ export default function KnowledgeAssistant({ id }) {
         });
       } else {
         // Keep the reader at their question when the answer arrives.
-        scrollTarget.current = result.messages.find(message => message.kind === "question")?.id;
+        scrollTarget.current = result.messages.find(
+          (message) => message.kind === "question",
+        )?.id;
         setMessages((previous) => [
           ...previous,
           ...result.messages.filter(
@@ -264,6 +311,7 @@ export default function KnowledgeAssistant({ id }) {
             Restoring conversation…
           </p>
         )}
+
         {error && (
           <div className="notice error" role="alert">
             <p>{error}</p>
@@ -280,6 +328,7 @@ export default function KnowledgeAssistant({ id }) {
             )}
           </div>
         )}
+
         {empty && !loading && (
           <section className="chat-welcome">
             <div className={`mascot-presence ${busy ? "is-thinking" : ""}`}>
@@ -318,11 +367,19 @@ export default function KnowledgeAssistant({ id }) {
         <p className="fine-print">
           Source evidence is shown by default. To check incoming registrations
           against these references,{" "}
-          <Link to={`/agents?${new URLSearchParams({
-            ...(active?.retrieval?.query_plan?.event_id ? { event: active.retrieval.query_plan.event_id } : {}),
-            ...(conversation?.id ? { conversation: conversation.id } : {}),
-          })}`}>continue to Agent Workspace</Link>.
+          <Link
+            to={`/agents?${new URLSearchParams({
+              ...(active?.retrieval?.query_plan?.event_id
+                ? { event: active.retrieval.query_plan.event_id }
+                : {}),
+              ...(conversation?.id ? { conversation: conversation.id } : {}),
+            })}`}
+          >
+            continue to Agent Workspace
+          </Link>
+          .
         </p>
+
         {!empty && (
           <div className="conversation-heading">
             <span>{conversation?.title || "Conversation"}</span>
@@ -333,6 +390,7 @@ export default function KnowledgeAssistant({ id }) {
             )}
           </div>
         )}
+
         {!empty && (
           <div className="exchanges">
             {exchanges.map((exchange) => (
@@ -348,14 +406,18 @@ export default function KnowledgeAssistant({ id }) {
                 }}
               />
             ))}
-
           </div>
         )}
+
         {pending && !empty && (
           <article ref={pendingQuestion} className="exchange pending-question">
-            <div className="question"><div className="eyebrow">Your question</div><h2>{pending}</h2></div>
+            <div className="question">
+              <div className="eyebrow">Your question</div>
+              <h2>{pending}</h2>
+            </div>
           </article>
         )}
+
         {busy && (
           <p className="chat-loading" role="status">
             {!empty && (
@@ -370,10 +432,20 @@ export default function KnowledgeAssistant({ id }) {
             Reviewing sources{generate ? " and requesting an answer" : ""}…
           </p>
         )}
+
         <div ref={end} className="chat-end" aria-hidden="true" />
         <form className="chat-composer" onSubmit={ask} aria-busy={busy}>
-          {awayFromBottom && !empty && <button type="button" className="jump-to-bottom"
-            aria-label="Jump to latest message" onClick={jumpToBottom}><ArrowDown size={17} /> <span>Latest</span></button>}
+          {awayFromBottom && !empty && (
+            <button
+              type="button"
+              className="jump-to-bottom"
+              aria-label="Jump to latest message"
+              onClick={jumpToBottom}
+            >
+              <ArrowDown size={17} /> <span>Latest</span>
+            </button>
+          )}
+
           <div className="composer-surface">
             <button
               className="source-menu-toggle icon-button"
@@ -385,7 +457,9 @@ export default function KnowledgeAssistant({ id }) {
             >
               <Plus size={20} strokeWidth={1.5} />
             </button>
+
             {sourcesOpen && <SourcesMenu close={() => setSourcesOpen(false)} />}
+
             <textarea
               ref={textarea}
               id="question"
@@ -412,6 +486,7 @@ export default function KnowledgeAssistant({ id }) {
                 }
               }}
             />
+
             <button
               className="composer-submit icon-button"
               aria-label="Ask question"
@@ -466,6 +541,7 @@ export default function KnowledgeAssistant({ id }) {
           </details>
         </form>
       </div>
+
       {active && evidenceOpen && (
         <aside
           className="context-panel panel"

@@ -4,10 +4,13 @@ import { replayBounds, replaySteps } from "../execution.js";
 
 export function useExecutionReplay(run) {
   const bounds = useMemo(() => replayBounds(run), [run]);
+
   const [active, setActive] = useState(false),
     [playing, setPlaying] = useState(false);
+
   const [offset, setOffset] = useState(0),
     [speed, setSpeed] = useState(0.25);
+
   useEffect(() => {
     setActive(false);
     setPlaying(false);
@@ -25,9 +28,11 @@ export function useExecutionReplay(run) {
     }, 80);
     return () => clearInterval(timer);
   }, [playing, speed, bounds]);
+
   useEffect(() => {
     if (bounds && offset >= bounds.duration) setPlaying(false);
   }, [offset, bounds]);
+
   const steps = useMemo(
     () =>
       active && bounds
@@ -35,6 +40,7 @@ export function useExecutionReplay(run) {
         : run?.steps || [],
     [active, bounds, run?.steps, offset],
   );
+
   return {
     active,
     playing,
@@ -63,6 +69,7 @@ export function useExecutionReplay(run) {
     setSpeed,
   };
 }
+
 export default function ExecutionReplay({ replay }) {
   if (!replay.bounds)
     return (
@@ -70,8 +77,10 @@ export default function ExecutionReplay({ replay }) {
         Replay requires a finished run with recorded step timestamps.
       </p>
     );
+
   if (!replay.active)
     return <button onClick={replay.start}>Replay execution</button>;
+
   return (
     <section
       className="execution-replay"

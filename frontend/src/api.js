@@ -17,6 +17,7 @@ export function validationMessage(detail) {
           `${(item.loc || []).filter((x) => x !== "body").join(".")}: ${item.msg}`,
       )
       .join("; ");
+
   return "The request could not be completed.";
 }
 
@@ -97,6 +98,7 @@ export async function request(
     throw error;
   } finally {
     clearTimeout(timer);
+
     signal?.removeEventListener("abort", abort);
   }
 }

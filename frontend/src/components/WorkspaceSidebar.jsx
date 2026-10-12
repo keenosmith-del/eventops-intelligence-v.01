@@ -37,34 +37,52 @@ export default function WorkspaceSidebar({
 }) {
   const [history, setHistory] = useState([]),
     [historyError, setHistoryError] = useState("");
+
   const [settings, setSettings] = useState(false),
     [uuid, setUuid] = useState(""),
     [uuidError, setUuidError] = useState("");
+
   const [uuidOpen, setUuidOpen] = useState(false);
-  const uuidControl = useRef(null), uuidTrigger = useRef(null);
+
+  const uuidControl = useRef(null),
+    uuidTrigger = useRef(null);
+
   const aside = useRef(null),
     settingsControl = useRef(null);
+
   const [tooltip, setTooltip] = useState(null);
+
   const location = useLocation(),
     navigate = useNavigate();
+
   useEffect(() => {
     if (!uuidOpen) return;
     function dismiss(event) {
       if (event.type === "keydown" && event.key === "Escape") {
         setUuidOpen(false);
         uuidTrigger.current?.focus();
-      } else if (event.type === "pointerdown" && !uuidControl.current?.contains(event.target)) {
+      } else if (
+        event.type === "pointerdown" &&
+        !uuidControl.current?.contains(event.target)
+      ) {
         setUuidOpen(false);
       }
     }
+
     document.addEventListener("pointerdown", dismiss);
+
     document.addEventListener("keydown", dismiss);
+
     return () => {
       document.removeEventListener("pointerdown", dismiss);
       document.removeEventListener("keydown", dismiss);
     };
   }, [uuidOpen]);
-  useEffect(() => { setUuidOpen(false); }, [location.key, collapsed]);
+
+  useEffect(() => {
+    setUuidOpen(false);
+  }, [location.key, collapsed]);
+
   useEffect(() => {
     if (!settings) return;
     function dismiss(event) {
@@ -77,18 +95,23 @@ export default function WorkspaceSidebar({
         setSettings(false);
     }
     document.addEventListener("pointerdown", dismiss);
+
     document.addEventListener("keydown", dismiss);
+
     return () => {
       document.removeEventListener("pointerdown", dismiss);
       document.removeEventListener("keydown", dismiss);
     };
   }, [settings]);
+
   useEffect(() => {
     setSettings(false);
   }, [location.key]);
+
   useEffect(() => {
     setTooltip(null);
   }, [location.key, collapsed, drawer]);
+
   useEffect(() => {
     const dismiss = () => setTooltip(null);
     const keydown = (event) => {
@@ -105,6 +128,7 @@ export default function WorkspaceSidebar({
       window.removeEventListener("blur", dismiss);
     };
   }, []);
+
   function tooltipEvents(id) {
     return {
       onPointerEnter: (event) => {
@@ -121,14 +145,18 @@ export default function WorkspaceSidebar({
   }
   const tooltipClass = (id) =>
     `rail-tooltip${tooltip === id ? " is-visible" : ""}`;
+
   useEffect(() => {
     if (!knowledge) return;
     const controller = new AbortController();
+
     let sequence = 0;
+
     async function refresh() {
       const current = ++sequence;
       try {
         const items = await api.list(controller.signal);
+
         const titled = await Promise.all(
           items.map(async (item) => {
             if (item.title) return item;
@@ -141,6 +169,7 @@ export default function WorkspaceSidebar({
             };
           }),
         );
+
         if (!controller.signal.aborted && current === sequence) {
           setHistory(titled);
           setHistoryError("");
@@ -150,19 +179,28 @@ export default function WorkspaceSidebar({
           setHistoryError(workspaceError(error));
       }
     }
+
     refresh();
+
     window.addEventListener("eventops-history-updated", refresh);
+
     return () => {
       controller.abort();
       window.removeEventListener("eventops-history-updated", refresh);
     };
   }, [token, knowledge]);
+
   useEffect(() => {
     if (!mobile || !drawer) return;
+
     const previous = document.activeElement;
+
     const oldOverflow = document.body.style.overflow;
+
     document.body.style.overflow = "hidden";
+
     aside.current.querySelector("button")?.focus();
+
     function keydown(event) {
       if (event.key === "Escape") close();
       if (event.key === "Tab") {
@@ -173,8 +211,10 @@ export default function WorkspaceSidebar({
         ].filter((element) => element.getClientRects().length);
         const first = elements[0],
           last = elements.at(-1);
+
         if (event.shiftKey && document.activeElement === first) {
           event.preventDefault();
+
           last?.focus();
         } else if (!event.shiftKey && document.activeElement === last) {
           event.preventDefault();
@@ -247,6 +287,7 @@ export default function WorkspaceSidebar({
         ) : (
           <ArrowLeft size={19} aria-hidden="true" />
         )}
+
         {collapsed && (
           <span
             className={tooltipClass("expand-tooltip")}
@@ -257,6 +298,7 @@ export default function WorkspaceSidebar({
           </span>
         )}
       </button>
+
       <nav aria-label="Main navigation">
         {navigation.map(([path, label, Icon], index) => (
           <NavLink
@@ -271,7 +313,9 @@ export default function WorkspaceSidebar({
             }
           >
             <Icon size={18} strokeWidth={1.5} aria-hidden="true" />
+
             {!collapsed && <span>{label}</span>}
+
             {collapsed && (
               <span
                 className={tooltipClass(`nav-tooltip-${index}`)}
@@ -298,7 +342,9 @@ export default function WorkspaceSidebar({
             aria-describedby={collapsed ? "new-chat-tooltip" : undefined}
           >
             <Plus size={18} strokeWidth={1.5} aria-hidden="true" />
+
             {!collapsed && "New chat"}
+
             {collapsed && (
               <span
                 className={tooltipClass("new-chat-tooltip")}
@@ -309,6 +355,7 @@ export default function WorkspaceSidebar({
               </span>
             )}
           </button>
+
           {!collapsed && (
             <>
               <div
@@ -346,33 +393,65 @@ export default function WorkspaceSidebar({
                 )}
               </div>
               <div className="uuid-disclosure" ref={uuidControl}>
-                <button type="button" ref={uuidTrigger} className="uuid-trigger"
-                  aria-expanded={uuidOpen} aria-controls="uuid-search"
-                  onClick={() => { setUuidOpen(value => !value); setUuidError(""); }}>
+                <button
+                  type="button"
+                  ref={uuidTrigger}
+                  className="uuid-trigger"
+                  aria-expanded={uuidOpen}
+                  aria-controls="uuid-search"
+                  onClick={() => {
+                    setUuidOpen((value) => !value);
+                    setUuidError("");
+                  }}
+                >
                   Open saved chat
                 </button>
-                {uuidOpen && <form id="uuid-search" onSubmit={openUuid} aria-label="Open saved chat">
-                  <button type="button" className="uuid-close icon-button" aria-label="Close saved chat search"
-                    onClick={() => { setUuidOpen(false); uuidTrigger.current?.focus(); }}><X size={16} /></button>
-                  <label htmlFor="restore-id">Open by UUID</label>
-                  <input
-                    id="restore-id"
-                    autoFocus
-                    aria-invalid={Boolean(uuidError)}
-                    aria-describedby={uuidError ? "uuid-error" : undefined}
-                    value={uuid}
-                    onChange={(event) => { setUuid(event.target.value); setUuidError(""); }}
-                    placeholder="Conversation UUID"
-                    required
-                  />
-                  <button>Open conversation by UUID</button>
-                  {uuidError && <p id="uuid-error" role="alert">{uuidError}</p>}
-                </form>}
+
+                {uuidOpen && (
+                  <form
+                    id="uuid-search"
+                    onSubmit={openUuid}
+                    aria-label="Open saved chat"
+                  >
+                    <button
+                      type="button"
+                      className="uuid-close icon-button"
+                      aria-label="Close saved chat search"
+                      onClick={() => {
+                        setUuidOpen(false);
+                        uuidTrigger.current?.focus();
+                      }}
+                    >
+                      <X size={16} />
+                    </button>
+                    <label htmlFor="restore-id">Open by UUID</label>
+                    <input
+                      id="restore-id"
+                      autoFocus
+                      aria-invalid={Boolean(uuidError)}
+                      aria-describedby={uuidError ? "uuid-error" : undefined}
+                      value={uuid}
+                      onChange={(event) => {
+                        setUuid(event.target.value);
+                        setUuidError("");
+                      }}
+                      placeholder="Conversation UUID"
+                      required
+                    />
+                    <button>Open conversation by UUID</button>
+                    {uuidError && (
+                      <p id="uuid-error" role="alert">
+                        {uuidError}
+                      </p>
+                    )}
+                  </form>
+                )}
               </div>
             </>
           )}
         </div>
       )}
+
       <div className="sidebar-bottom">
         <div ref={settingsControl}>
           <button
@@ -384,7 +463,9 @@ export default function WorkspaceSidebar({
             onClick={() => setSettings((value) => !value)}
           >
             <Settings size={18} strokeWidth={1.5} aria-hidden="true" />
+
             {!collapsed && "Settings"}
+
             {collapsed && (
               <span
                 className={tooltipClass("settings-tooltip")}
@@ -395,6 +476,7 @@ export default function WorkspaceSidebar({
               </span>
             )}
           </button>
+
           {settings && (
             <section className="workspace-settings" aria-label="Settings">
               <p>EventOps Intelligence v.01</p>
@@ -420,7 +502,9 @@ export default function WorkspaceSidebar({
           onClick={leave}
         >
           <ArrowLeft size={18} strokeWidth={1.5} aria-hidden="true" />
+
           {!collapsed && "Leave session"}
+
           {collapsed && (
             <span
               className={tooltipClass("leave-tooltip")}

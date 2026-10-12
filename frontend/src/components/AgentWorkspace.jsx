@@ -35,7 +35,9 @@ const order = Object.keys(labels);
 
 function FitExecutionGraph() {
   const initialized = useNodesInitialized();
+
   const { fitView } = useReactFlow();
+
   useEffect(() => {
     if (!initialized) return;
     const frame = requestAnimationFrame(() =>
@@ -43,6 +45,7 @@ function FitExecutionGraph() {
     );
     return () => cancelAnimationFrame(frame);
   }, [initialized, fitView]);
+
   return null;
 }
 
@@ -83,6 +86,7 @@ function Stage({ data }) {
     failed: X,
     skipped: Minus,
   }[data.status];
+
   return (
     <div className={`flow-stage ${data.status || "blueprint"}`}>
       <Handle type="target" position={Position.Top} />
@@ -114,7 +118,9 @@ const nodeTypes = { stage: Stage };
 
 function elapsed(start, finish) {
   if (!start || !finish) return "Not recorded";
+
   const milliseconds = Date.parse(finish) - Date.parse(start);
+
   return Number.isFinite(milliseconds) && milliseconds >= 0
     ? `${(milliseconds / 1000).toFixed(2)} seconds`
     : "Not recorded";
@@ -122,6 +128,7 @@ function elapsed(start, finish) {
 
 function ExecutionData({ value }) {
   if (value === null || value === undefined) return <span>Not recorded</span>;
+
   if (Array.isArray(value))
     return value.length ? (
       <details className="execution-data">
@@ -166,10 +173,15 @@ function incomplete(record) {
 export async function downloadResults(runId, verifiedOnly = false) {
   const blob = await api.exportRun(runId, verifiedOnly),
     url = URL.createObjectURL(blob);
+
   const anchor = document.createElement("a");
+
   anchor.href = url;
+
   anchor.download = `eventops-${runId}${verifiedOnly ? "-verified" : ""}.csv`;
+
   document.body.appendChild(anchor);
+
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
@@ -177,11 +189,14 @@ export async function downloadResults(runId, verifiedOnly = false) {
 
 export function ResultTable({ run, onExport }) {
   const detail = useRef(null);
+
   const [filter, setFilter] = useState("all"),
     [selected, setSelected] = useState(null);
+
   const [sourceFilter, setSourceFilter] = useState("all"),
     [issueFilter, setIssueFilter] = useState("all"),
     [eventFilter, setEventFilter] = useState("all");
+
   useEffect(() => {
     setSelected(null);
     setFilter("all");
@@ -189,6 +204,7 @@ export function ResultTable({ run, onExport }) {
     setIssueFilter("all");
     setEventFilter("all");
   }, [run.id]);
+
   const records = run.results || [];
   const stats = analysis(records);
   const rows = records.filter(
@@ -210,13 +226,16 @@ export function ResultTable({ run, onExport }) {
         : "smooth",
     });
   }
+
   useEffect(() => {
     if (selected) revealDetail();
   }, [selected]);
+
   return (
     <section className="results-section">
       <div className="result-toolbar">
         <h2>Verification results</h2>
+
         <label htmlFor="result-filter">
           Show{" "}
           <StyledSelect
@@ -231,6 +250,7 @@ export function ResultTable({ run, onExport }) {
             <option value="incomplete">Missing details</option>
           </StyledSelect>
         </label>
+
         <label>
           Source{" "}
           <StyledSelect
@@ -243,6 +263,7 @@ export function ResultTable({ run, onExport }) {
             ))}
           </StyledSelect>
         </label>
+
         <label>
           Event{" "}
           <StyledSelect
@@ -259,6 +280,7 @@ export function ResultTable({ run, onExport }) {
             )}
           </StyledSelect>
         </label>
+
         <label>
           Discrepancy{" "}
           <StyledSelect
@@ -273,6 +295,7 @@ export function ResultTable({ run, onExport }) {
             ))}
           </StyledSelect>
         </label>
+
         {onExport && (
           <>
             <button onClick={() => onExport(false)}>Export all CSV</button>
@@ -283,11 +306,13 @@ export function ResultTable({ run, onExport }) {
       {terminal(run.status) && (
         <section className="csv-analysis panel" aria-label="CSV analysis">
           <h3>CSV analysis</h3>
+
           <p>
             Counts from all saved result records; table filters do not change
             this analysis. A multi-source record contributes once to each
             source.
           </p>
+
           <div className="analysis-columns">
             {[
               ["Status distribution", stats.statuses],
@@ -308,6 +333,7 @@ export function ResultTable({ run, onExport }) {
               </div>
             ))}
           </div>
+
           <p>
             {stats.missing} records with missing fields · {stats.conflicts}{" "}
             records with conflicts or reference mismatches
@@ -339,6 +365,7 @@ export function ResultTable({ run, onExport }) {
           </div>
         ))}
       </div>
+
       {!records.length ? (
         <div className="panel">
           <p>
@@ -361,6 +388,7 @@ export function ResultTable({ run, onExport }) {
                 <th>Evidence</th>
               </tr>
             </thead>
+
             <tbody>
               {!rows.length && (
                 <tr>
@@ -440,6 +468,7 @@ export function ResultTable({ run, onExport }) {
               </div>
             ))}
           </dl>
+
           <h3>Raw extracted values</h3>
           {rawRecords(run, record).length ? (
             rawRecords(run, record).map((raw, index) => (
@@ -447,6 +476,7 @@ export function ResultTable({ run, onExport }) {
                 <p>
                   {raw.source_type} / {raw.source_record_id}
                 </p>
+
                 <dl className="normalized-fields">
                   {[
                     "event_id",
@@ -545,49 +575,75 @@ export function ResultTable({ run, onExport }) {
 
 export default function AgentWorkspace({ runId, view = "workspace" }) {
   const [searchParams] = useSearchParams();
+
   const eventFromChat = searchParams.get("event");
+
   const conversationId = searchParams.get("conversation");
+
   const journeyQuery = new URLSearchParams();
-  if (conversationId && /^[0-9a-f-]{36}$/i.test(conversationId)) journeyQuery.set("conversation", conversationId);
-  if (["EVT-101", "EVT-102", "EVT-103"].includes(eventFromChat)) journeyQuery.set("event", eventFromChat);
+
+  if (conversationId && /^[0-9a-f-]{36}$/i.test(conversationId))
+    journeyQuery.set("conversation", conversationId);
+
+  if (["EVT-101", "EVT-102", "EVT-103"].includes(eventFromChat))
+    journeyQuery.set("event", eventFromChat);
+
   const journeySuffix = journeyQuery.size ? `?${journeyQuery}` : "";
+
   const navigate = useNavigate(),
     [connections, setConnections] = useState([]),
     [runs, setRuns] = useState([]),
     [run, setRun] = useState(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
-    [eventId, setEventId] = useState(["EVT-101", "EVT-102", "EVT-103"].includes(eventFromChat) ? eventFromChat : "EVT-101"),
+    [eventId, setEventId] = useState(
+      ["EVT-101", "EVT-102", "EVT-103"].includes(eventFromChat)
+        ? eventFromChat
+        : "EVT-101",
+    ),
     [limit, setLimit] = useState(20),
     [selected, setSelected] = useState("trigger");
+
   const [manualSelection, setManualSelection] = useState(false);
+
   const replay = useExecutionReplay(run);
+
   const visibleSteps = replay.steps;
+
   const activeStep = visibleSteps.find((step) => step.status === "running");
+
   const latestStep = [...visibleSteps]
     .filter((step) => step.finished_at)
     .sort(
       (first, second) =>
         Date.parse(second.finished_at) - Date.parse(first.finished_at),
     )[0];
+
   useEffect(() => {
     setManualSelection(false);
     setSelected("trigger");
   }, [runId]);
+
   useEffect(() => {
     if (!manualSelection && (activeStep || latestStep))
       setSelected((activeStep || latestStep).node_id);
   }, [manualSelection, activeStep?.node_id, latestStep?.node_id]);
+
   function selectStage(id) {
     setManualSelection(true);
     setSelected(id);
   }
   const lock = useRef(false),
     flowSurface = useRef(null);
+
   const [flow, setFlow] = useState(null);
+
   const [loadingRuns, setLoadingRuns] = useState(true);
+
   const [listError, setListError] = useState("");
+
   const [listRevision, setListRevision] = useState(0);
+
   useEffect(() => {
     if (!flow || !flowSurface.current) return;
     const observer = new ResizeObserver(() =>
@@ -596,6 +652,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
     observer.observe(flowSurface.current);
     return () => observer.disconnect();
   }, [flow]);
+
   useEffect(() => {
     const c = new AbortController();
     setLoadingRuns(true);
@@ -619,8 +676,10 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       .finally(() => {
         if (!c.signal.aborted) setLoadingRuns(false);
       });
+
     return () => c.abort();
   }, [runId, view, listRevision]);
+
   useEffect(() => {
     const c = new AbortController();
     let timer;
@@ -646,6 +705,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       clearTimeout(timer);
     };
   }, [runId]);
+
   async function start(event) {
     event.preventDefault();
     if (lock.current) return;
@@ -678,6 +738,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
     }
   }
   const step = visibleSteps.find((item) => item.node_id === selected);
+
   const nodeUpdates = useMemo(
     () =>
       order.map((key, i) => ({
@@ -702,7 +763,9 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       })),
     [run?.id, visibleSteps],
   );
+
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
+
   useEffect(() => {
     // Preserve React Flow's measured dimensions across polled status updates.
     // Replacing unmeasured node objects can leave a running graph invisible.
@@ -713,6 +776,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       })),
     );
   }, [nodeUpdates, setNodes]);
+
   const edges = useMemo(
     () =>
       links.map(([source, target]) => ({
@@ -728,6 +792,7 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       })),
     [visibleSteps],
   );
+
   const title =
     view === "results"
       ? "Verification results"
@@ -747,13 +812,37 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
         </p>
       </div>
       <nav className="fine-print" aria-label="Reviewer journey">
-        <Link to={journeyQuery.has("conversation") ? `/conversations/${conversationId}` : "/workspace"}>1. Ask about an event</Link>
+        <Link
+          to={
+            journeyQuery.has("conversation")
+              ? `/conversations/${conversationId}`
+              : "/workspace"
+          }
+        >
+          1. Ask about an event
+        </Link>
         {" → "}
         <Link to={`/agents${journeySuffix}`}>2. Run verification</Link>
         {" → "}
-        <Link to={run ? `/verification/${run.id}${journeySuffix}` : `/verification${journeySuffix}`}>3. Inspect results</Link>
+        <Link
+          to={
+            run
+              ? `/verification/${run.id}${journeySuffix}`
+              : `/verification${journeySuffix}`
+          }
+        >
+          3. Inspect results
+        </Link>
         {" → "}
-        <Link to={run ? `/history/${run.id}${journeySuffix}` : `/history${journeySuffix}`}>4. Revisit history</Link>
+        <Link
+          to={
+            run
+              ? `/history/${run.id}${journeySuffix}`
+              : `/history${journeySuffix}`
+          }
+        >
+          4. Revisit history
+        </Link>
       </nav>
       {listError && (
         <p role="alert" className="notice error">
@@ -870,8 +959,17 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
             <p role="status">Loading saved executions…</p>
           ) : runs.length ? (
             <>
-              {runs.length > 4 && <p className="saved-execution-hint">{runs.length} saved · Scroll for older executions</p>}
-              <div className="recent-grid saved-execution-scroll" role="region" aria-label="Saved execution list" tabIndex={0}>
+              {runs.length > 4 && (
+                <p className="saved-execution-hint">
+                  {runs.length} saved · Scroll for older executions
+                </p>
+              )}
+              <div
+                className="recent-grid saved-execution-scroll"
+                role="region"
+                aria-label="Saved execution list"
+                tabIndex={0}
+              >
                 {runs.map((item) => (
                   <button
                     key={item.id}
@@ -1071,9 +1169,15 @@ export default function AgentWorkspace({ runId, view = "workspace" }) {
       {run && (
         <>
           <nav className="execution-links" aria-label="Saved execution views">
-            <Link to={`/verification/${run.id}${journeySuffix}`}>Open saved results</Link>
-            <Link to={`/history/${run.id}${journeySuffix}`}>Open execution history</Link>
-            <Link to={`/agents/runs/${run.id}${journeySuffix}`}>Open execution graph</Link>
+            <Link to={`/verification/${run.id}${journeySuffix}`}>
+              Open saved results
+            </Link>
+            <Link to={`/history/${run.id}${journeySuffix}`}>
+              Open execution history
+            </Link>
+            <Link to={`/agents/runs/${run.id}${journeySuffix}`}>
+              Open execution graph
+            </Link>
           </nav>
           <p className="fine-print">
             Created {new Date(run.created_at).toLocaleString()}

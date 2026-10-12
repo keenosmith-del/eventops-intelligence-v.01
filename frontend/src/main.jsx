@@ -7,9 +7,11 @@ import "./styles.css";
 // Error boundary to catch errors in the app and display a fallback UI
 class ErrorBoundary extends React.Component {
   state = { failed: false };
+
   static getDerivedStateFromError() {
     return { failed: true };
   }
+
   render() {
     return this.state.failed ? (
       <main className="fatal">
